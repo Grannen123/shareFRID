@@ -1,0 +1,74 @@
+/* TAILWIND V4: Importera via @import */
+@import "tailwindcss";
+
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+
+/* Custom CSS variables för tema */
+@theme {
+  /* Färgpalett - RGB format för alpha support */
+  --color-sage: rgb(135 169 107);
+  --color-sage-dark: rgb(116 147 93);
+  --color-terracotta: rgb(212 103 74);
+  --color-terracotta-dark: rgb(194 90 62);
+  --color-lavender: rgb(155 143 191);
+  --color-charcoal: rgb(44 40 36);
+  --color-ash: rgb(90 85 80);
+  --color-warm-white: rgb(253 252 251);
+  --color-cream: rgb(249 247 244);
+  --color-sand: rgb(240 237 232);
+  --color-warning: rgb(245 158 11);
+  --color-success: rgb(135 169 107);
+  --color-error: rgb(212 103 74);
+  --color-info: rgb(155 143 191);
+
+  /* Typografi */
+  --font-display: 'Lora', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  /* Shadows */
+  --shadow-organic: 0 2px 12px rgba(44,40,36,0.03), 0 8px 24px rgba(135,169,107,0.04);
+  --shadow-floating: 0 8px 32px rgba(135,169,107,0.18);
+  --shadow-focus: 0 0 0 3px rgba(135,169,107,0.3);
+  --shadow-focus-error: 0 0 0 3px rgba(212,103,74,0.3);
+}
+
+/* Base styles */
+body {
+  font-family: var(--font-body);
+  background: var(--color-cream);
+  color: var(--color-charcoal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Focus styles (WCAG AA) */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Utility för line-clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
