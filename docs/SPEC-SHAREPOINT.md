@@ -1,6 +1,6 @@
 # Grannfrid App – SharePoint Edition
 
-**Version:** 1.2
+**Version:** 1.3
 **Datum:** 2026-01-18
 **Syfte:** Fullständig specifikation för Grannfrid-appen med SharePoint som backend
 
@@ -267,6 +267,124 @@ const timebankCalculate: AzureFunction = async (
 export default timebankCalculate;
 ```
 
+### 2.6 Write Pipeline & Outbox Pattern
+
+#### Problemet
+
+En typisk skrivoperation involverar flera filer:
+
+1. Skapa journalfil
+2. Uppdatera ledger
+3. Skapa billing_lines i index
+4. Uppdatera cases.json (total_minutes)
+5. Logga ai_log
+
+Om steg 3 misslyckas men 1-2 lyckas → inkonsistent data.
+
+#### Lösningen: Operation Outbox
+
+```
+/System/outbox/
+├── pending/
+│   └── op_2026-01-18T14-32-00_abc123.json
+├── applied/
+│   └── op_2026-01-18T14-30-00_xyz789.json
+└── failed/
+    └── op_2026-01-18T14-28-00_err456.json
+```
+
+#### Operation-format
+
+```json
+{
+  "operation_id": "op_2026-01-18T14-32-00_abc123",
+  "type": "create_journal_entry",
+  "created_at": "2026-01-18T14:32:00Z",
+  "created_by": "user_peter",
+  "status": "pending",
+  "payload": {
+    "case_id": "C-26-047",
+    "entry_id": "jrn_2026-01-18_abc123",
+    "minutes": 30
+  },
+  "steps": [
+    {
+      "action": "create_file",
+      "path": "/Journal/jrn_...",
+      "status": "pending"
+    },
+    {
+      "action": "update_ledger",
+      "agreement_id": "agr_...",
+      "status": "pending"
+    },
+    { "action": "create_billing_line", "status": "pending" },
+    { "action": "update_case_index", "status": "pending" }
+  ],
+  "completed_at": null,
+  "error": null
+}
+```
+
+#### Azure Function: Operation Processor
+
+```typescript
+// functions/process-outbox/index.ts
+import { AzureFunction, Context } from "@azure/functions";
+
+const processOutbox: AzureFunction = async (
+  context: Context,
+): Promise<void> => {
+  const pendingOps = await listFiles("/System/outbox/pending/");
+
+  for (const opFile of pendingOps) {
+    const op = await readJson(opFile);
+
+    try {
+      for (const step of op.steps) {
+        if (step.status === "pending") {
+          await executeStep(step);
+          step.status = "completed";
+          await updateOperation(op); // Checkpoint efter varje steg
+        }
+      }
+
+      op.status = "applied";
+      op.completed_at = new Date().toISOString();
+      await moveToApplied(op);
+    } catch (error) {
+      op.status = "failed";
+      op.error = error.message;
+      await moveToFailed(op);
+    }
+  }
+};
+
+// Timer trigger: varje minut
+export default processOutbox;
+```
+
+#### UI-indikator
+
+```
+┌────────────────────────────────────────────────┐
+│ ⏳ Sparar...                                   │
+│                                                │
+│ Din journalpost bearbetas.                     │
+│ Detta tar normalt 1-2 sekunder.                │
+│                                                │
+│ [Steg 2/4: Uppdaterar timbank...]              │
+└────────────────────────────────────────────────┘
+```
+
+#### Recovery
+
+Om en operation fastnar i `pending` > 5 minuter:
+
+1. Nattlig job retry:ar
+2. Admin kan manuellt markera som `failed`
+3. Index-rebuild återställer konsistens
+
 ---
 
 ## 3. SharePoint-struktur
@@ -359,18 +477,44 @@ export default timebankCalculate;
 
 Alla entiteter har stabila, unika ID:n för att säkerställa dataintegritet:
 
-| Entitet     | Format                     | Exempel                    |
-| ----------- | -------------------------- | -------------------------- |
-| Kund        | `cust_{slug}_{4char}`      | `cust_bjorkekärr_7x3k`     |
-| Avtal       | `agr_{kund}_{år}_{4char}`  | `agr_bjorkekärr_2024_9m2p` |
-| Ärende      | `C-{ÅÅ}-{NNN}`             | `C-26-047`                 |
-| Projekt     | `P-{ÅÅ}-{NNN}`             | `P-26-012`                 |
-| Kontakt     | `cont_{efternamn}_{4char}` | `cont_lindstrom_4n8j`      |
-| Journalpost | `jrn_{datum}_{6char}`      | `jrn_2026-01-18_abc123`    |
-| Fakturarad  | `bill_{period}_{6char}`    | `bill_2026-01_def456`      |
-| Konsult     | `user_{förnamn}`           | `user_peter`               |
+| Entitet     | Format                    | Exempel                    |
+| ----------- | ------------------------- | -------------------------- |
+| Kund        | `cust_{8char}`            | `cust_7x3kM9pQ`            |
+| Avtal       | `agr_{8char}`             | `agr_9m2pK4nL`             |
+| Ärende      | `C-{ÅÅ}-{NNN}`            | `C-26-047`                 |
+| Projekt     | `P-{ÅÅ}-{NNN}`            | `P-26-012`                 |
+| Kontakt     | `cont_{8char}`            | `cont_4n8jR2wX`            |
+| Journalpost | `jrn_{timestamp}_{6char}` | `jrn_20260118T1432_abc123` |
+| Fakturarad  | `bill_{period}_{6char}`   | `bill_2026-01_def456`      |
+| Konsult     | `user_{aadObjectId}`      | `user_a1b2c3d4-e5f6-...`   |
 
-**Princip:** Namn kan ändras, ID:n är permanenta. Alla relationer använder ID, aldrig namnsträngar.
+**Principer:**
+
+1. **Namn i metadata, inte i ID:** Namn kan ändras, ID:n är permanenta
+2. **Collision-proof:** Använd tillräckligt långa slumpmässiga strängar (8+ tecken)
+3. **Konsulter:** Använd Azure AD Object ID för garanterad unikhet
+4. **Display slug:** För läsbara URLs kan en separat `slug` användas
+
+```typescript
+// lib/id-generator.ts
+import { nanoid } from "nanoid";
+
+export const generateId = {
+  customer: () => `cust_${nanoid(8)}`,
+  agreement: () => `agr_${nanoid(8)}`,
+  contact: () => `cont_${nanoid(8)}`,
+  journal: () => `jrn_${Date.now()}_${nanoid(6)}`,
+  billing: (period: string) => `bill_${period}_${nanoid(6)}`,
+  // Konsulter använder AAD Object ID
+  user: (aadObjectId: string) => `user_${aadObjectId}`,
+};
+```
+
+**Varför inte namn i ID?**
+
+- Två "Karin Lindström" → kollision
+- Namn ändras (giftemål) → trasiga relationer
+- Specialtecken i namn → URL-problem
 
 ---
 
@@ -708,6 +852,41 @@ Fakturarader lagras **separat** i `/System/index/billing_lines.json` för snabb 
 | `invoiced` | Fakturerad            |
 | `locked`   | Låst, kan ej ändras   |
 
+#### Source of Truth: Canonical vs Derived
+
+| Tillstånd  | Source of Truth | Kan återskapas?                 |
+| ---------- | --------------- | ------------------------------- |
+| `pending`  | **Derived**     | ✅ Ja, från journal + ledger    |
+| `review`   | **Derived**     | ✅ Ja, med manuella justeringar |
+| `approved` | **Canonical**   | ⚠️ Nej, är nu faktureringsdata  |
+| `invoiced` | **Canonical**   | ❌ Nej, exporterad till Fortnox |
+| `locked`   | **Canonical**   | ❌ Nej, juridiskt bindande      |
+
+**Regler:**
+
+1. **Före `approved`:** BillingLine kan alltid återskapas genom att:
+   - Läsa journalpost
+   - Räkna om via ledger
+   - Applicera timbank-split
+
+2. **Efter `approved`:** BillingLine är **locked** och:
+   - Kan inte ändras retroaktivt
+   - Ändringar kräver kreditnota
+   - Journal kan fortfarande redigeras (text), men tid är låst
+
+3. **Retroaktiv ändring av journal:**
+   ```
+   Journal (text) ändras    → OK, ingen påverkan på faktura
+   Journal (tid) ändras     → Genererar adjustment i ledger
+   BillingLine (approved)   → Orörd, ny kreditrad skapas vid behov
+   ```
+
+**Varför denna policy?**
+
+- Fakturering måste vara stabil efter godkännande
+- Audit trail bevaras
+- Retroaktiva ändringar spåras via ledger adjustments
+
 ---
 
 ### 4.11 Uppgifter (i uppdrag.md)
@@ -830,30 +1009,59 @@ Varje timbanksavtal har en ledger för spårbar saldoberäkning:
 
 ---
 
-### 4.14 System Index (JSON)
+### 4.14 System Index (JSON) - Shardad struktur
 
-Index-filer för snabba listor och aggregeringar:
+Index-filer är **shardade** för att undvika stora filer och ETag-konflikter:
 
-**/System/index/customers.json**
+```
+/System/index/
+├── /customers/
+│   ├── goteborg.json          # Kunder per workspace
+│   └── stockholm.json
+├── /cases/
+│   ├── active.json            # Aktiva ärenden (snabb åtkomst)
+│   └── /archive/
+│       ├── 2025.json          # Arkiverade per år
+│       └── 2024.json
+├── /agreements/
+│   ├── active.json            # Aktiva avtal
+│   └── expired.json           # Utgångna avtal
+└── /billing/
+    ├── 2026-01.json           # Fakturarader per period
+    ├── 2026-02.json
+    └── ...
+```
+
+#### Shardningsprinciper
+
+| Index      | Shard-nyckel        | Anledning                |
+| ---------- | ------------------- | ------------------------ |
+| Customers  | workspace           | Sällan > 100 per stad    |
+| Cases      | active/archive + år | Minskar aktiv filstorlek |
+| Agreements | active/expired      | Aktiva är få             |
+| Billing    | period (YYYY-MM)    | Naturlig partition       |
+
+#### /System/index/customers/goteborg.json
 
 ```json
 {
   "last_updated": "2026-01-18T10:00:00Z",
+  "workspace": "goteborg",
   "customers": [
     {
-      "customer_id": "cust_bjorkekärr_7x3k",
+      "customer_id": "cust_7x3kM9pQ",
       "fortnox_id": "10045",
       "name": "HSB Brf Björkekärr",
-      "workspace": "goteborg",
+      "slug": "bjorkekärr",
       "status": "active",
       "active_cases": 2,
-      "active_agreement_id": "agr_bjorkekärr_2024_9m2p"
+      "active_agreement_id": "agr_9m2pK4nL"
     }
   ]
 }
 ```
 
-**/System/index/cases.json**
+#### /System/index/cases/active.json
 
 ```json
 {
@@ -861,11 +1069,11 @@ Index-filer för snabba listor och aggregeringar:
   "cases": [
     {
       "case_id": "C-26-047",
-      "customer_id": "cust_bjorkekärr_7x3k",
+      "customer_id": "cust_7x3kM9pQ",
       "title": "Störning Ekvägen 15",
       "status": "active",
       "priority": "high",
-      "assignee_id": "user_peter",
+      "assignee_id": "user_a1b2c3d4-...",
       "created": "2026-01-10",
       "deadline": "2026-01-31",
       "total_minutes": 125
@@ -874,32 +1082,41 @@ Index-filer för snabba listor och aggregeringar:
 }
 ```
 
-**/System/index/agreements.json**
+#### /System/index/billing/2026-01.json
 
 ```json
 {
-  "last_updated": "2026-01-18T10:00:00Z",
-  "agreements": [
+  "period": "2026-01",
+  "last_updated": "2026-01-18T14:32:00Z",
+  "status": "open",
+  "lines": [
     {
-      "agreement_id": "agr_bjorkekärr_2024_9m2p",
-      "customer_id": "cust_bjorkekärr_7x3k",
+      "billing_line_id": "bill_2026-01_def456",
+      "entry_id": "jrn_20260118T1432_abc123",
+      "case_id": "C-26-047",
+      "customer_id": "cust_7x3kM9pQ",
       "type": "timebank",
-      "status": "active",
-      "included_minutes": 3000,
-      "remaining_minutes": 750,
-      "valid_from": "2024-01-01",
-      "valid_to": "2024-12-31"
+      "minutes": 30,
+      "rate": 0,
+      "amount": 0,
+      "status": "pending"
     }
-  ]
+  ],
+  "totals": {
+    "total_minutes": 2450,
+    "total_amount": 84500
+  }
 }
 ```
 
-**Princip: Markdown = källa, Index = cache**
+#### Principer
 
-- Index uppdateras vid varje skrivoperation
-- Index kan återskapas från markdown vid behov
-- Listor/rapporter läser från index (snabbt)
-- Detaljvyer läser från markdown (komplett)
+| Princip              | Beskrivning                      |
+| -------------------- | -------------------------------- |
+| **Markdown = källa** | Ursprungsdata, human-readable    |
+| **Index = cache**    | Derived data, kan återskapas     |
+| **Sharding**         | Minskar write contention         |
+| **Period-locking**   | Billing-index låses efter export |
 
 ---
 
@@ -1552,12 +1769,67 @@ Index-filer innehåller referens-ID:n, inte persondata:
 
 Vid radering av kontakt: uppdatera ID-referensen till `null` eller ersättnings-ID.
 
-### 10.4 Backup
+### 10.4 Backup & Disaster Recovery
+
+#### Recovery-nivåer
+
+| Nivå                 | Mekanism         | Tid       | Användning            |
+| -------------------- | ---------------- | --------- | --------------------- |
+| **Versionshistorik** | SharePoint auto  | Omedelbar | Oavsiktliga ändringar |
+| **Papperskorg**      | M365 recycle bin | 93 dagar  | Raderade filer        |
+| **Tenant backup**    | Microsoft 365    | Begärd    | Större incidenter     |
+
+#### Standard recovery (M365 inbyggt)
 
 - SharePoint versionshistorik (automatisk)
 - Papperskorg 93 dagar
 - Microsoft 365 backup ingår
-- **Ingen egen backup krävs** - Microsoft ansvarar
+
+**OBS:** Microsoft ansvarar för infrastruktur, inte för användarfel eller ransomware.
+
+#### Disaster Recovery Policy (rekommenderas)
+
+| Vad                | Frekvens  | Destination                 | Ansvarig       |
+| ------------------ | --------- | --------------------------- | -------------- |
+| `/System/` export  | Veckovis  | Azure Blob / extern lagring | Azure Function |
+| Index-filer        | Dagligen  | Separat Site Collection     | Azure Function |
+| Kund-data snapshot | Månadsvis | Extern backup               | Admin          |
+
+#### Automatisk backup-function
+
+```typescript
+// functions/backup-system/index.ts
+const backupSystem: AzureFunction = async (context: Context): Promise<void> => {
+  const timestamp = new Date().toISOString().split("T")[0];
+
+  // 1. Exportera /System/ till backup-container
+  const systemFiles = await listAllFiles("/System/");
+  for (const file of systemFiles) {
+    await copyToBackupStorage(file, `backups/${timestamp}/`);
+  }
+
+  // 2. Logga backup
+  await createBackupLog({
+    date: timestamp,
+    files_count: systemFiles.length,
+    status: "completed",
+  });
+};
+
+// Timer trigger: Söndag 03:00
+export default backupSystem;
+```
+
+#### Disaster scenarios och response
+
+| Scenario               | Response                          | RTO      |
+| ---------------------- | --------------------------------- | -------- |
+| Fil raderad av misstag | Återställ från papperskorg        | < 5 min  |
+| Korrupt index          | Kör `index-rebuild` function      | < 30 min |
+| Ransomware             | Återställ från extern backup      | < 4 tim  |
+| Tenant-incident        | Microsoft support + extern backup | < 24 tim |
+
+**RTO** = Recovery Time Objective
 
 ---
 
@@ -1617,8 +1889,9 @@ app_version: 1.0.0
 
 ## Ändringslogg
 
-| Datum      | Version | Ändringar                                                                |
-| ---------- | ------- | ------------------------------------------------------------------------ |
-| 2026-01-18 | 1.2     | Concurrency, Azure Functions, GDPR-säker AI, separata journalfiler       |
-| 2026-01-18 | 1.1     | Stabila ID:n, System Index, BillingLine, Agreement Ledger, AI guardrails |
-| 2026-01-18 | 1.0     | Initial SharePoint-specifikation                                         |
+| Datum      | Version | Ändringar                                                                         |
+| ---------- | ------- | --------------------------------------------------------------------------------- |
+| 2026-01-18 | 1.3     | Outbox pattern, shardade index, collision-proof IDs, canonical/derived policy, DR |
+| 2026-01-18 | 1.2     | Concurrency, Azure Functions, GDPR-säker AI, separata journalfiler                |
+| 2026-01-18 | 1.1     | Stabila ID:n, System Index, BillingLine, Agreement Ledger, AI guardrails          |
+| 2026-01-18 | 1.0     | Initial SharePoint-specifikation                                                  |
