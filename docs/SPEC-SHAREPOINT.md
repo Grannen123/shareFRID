@@ -9,14 +9,17 @@
 ## 1. Översikt
 
 ### 1.1 Vad är Grannfrid?
+
 En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, utredningar och bosociala uppdrag för BRF:er och fastighetsbolag.
 
 ### 1.2 Målgrupp
+
 - **Primär:** Konsulter på Grannfrid AB (Göteborg och Stockholm)
 - **Användare:** 5-10 konsulter, litet team med full transparens
 - **Ägare:** Jonas + delägare (extra behörigheter)
 
 ### 1.3 Kärnbehov
+
 - Snabb ärendehantering med tidsregistrering
 - Tydlig kunduppföljning och avtalshantering
 - Faktureringsunderlag med stöd för timbank, fastpris och löpande
@@ -66,29 +69,29 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 
 ### 2.2 Teknisk stack
 
-| Lager | Teknologi |
-|-------|-----------|
-| Frontend | React 18 + TypeScript |
-| Byggverktyg | Vite |
-| Styling | Tailwind CSS |
-| State | TanStack React Query |
-| Forms | React Hook Form + Zod |
-| Routing | React Router |
-| UI-komponenter | Radix UI |
-| Ikoner | Lucide React |
-| Toasts | Sonner |
-| Auth | Microsoft SSO (via MSAL) |
-| Backend | SharePoint (via Graph API) |
-| AI | Claude API + Gemini Flash |
-| Röst | Whisper API |
+| Lager          | Teknologi                  |
+| -------------- | -------------------------- |
+| Frontend       | React 18 + TypeScript      |
+| Byggverktyg    | Vite                       |
+| Styling        | Tailwind CSS               |
+| State          | TanStack React Query       |
+| Forms          | React Hook Form + Zod      |
+| Routing        | React Router               |
+| UI-komponenter | Radix UI                   |
+| Ikoner         | Lucide React               |
+| Toasts         | Sonner                     |
+| Auth           | Microsoft SSO (via MSAL)   |
+| Backend        | SharePoint (via Graph API) |
+| AI             | Claude API + Gemini Flash  |
+| Röst           | Whisper API                |
 
 ### 2.3 AI-strategi
 
-| AI | Användning |
-|----|------------|
-| **Claude** | Konversation, analys, skrivande, komplexa frågor |
+| AI               | Användning                                         |
+| ---------------- | -------------------------------------------------- |
+| **Claude**       | Konversation, analys, skrivande, komplexa frågor   |
 | **Gemini Flash** | Bulk-operationer, beräkningar, billigare uppgifter |
-| **Whisper** | Tal till text (diktering) |
+| **Whisper**      | Tal till text (diktering)                          |
 
 ---
 
@@ -138,11 +141,11 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 
 ### 3.2 Mapptyper
 
-| Typ | Beskrivning | Appen |
-|-----|-------------|-------|
-| **App-modul** | Strukturerad data, visas i dedikerad vy | Läser/skriver |
-| **Fri mapp** | Valfri organisation, alla filtyper | Visar, öppnar |
-| **App-data** | Teknisk konfiguration | Dold för användare |
+| Typ           | Beskrivning                             | Appen              |
+| ------------- | --------------------------------------- | ------------------ |
+| **App-modul** | Strukturerad data, visas i dedikerad vy | Läser/skriver      |
+| **Fri mapp**  | Valfri organisation, alla filtyper      | Visar, öppnar      |
+| **App-data**  | Teknisk konfiguration                   | Dold för användare |
 
 ### 3.3 Kundmapp (detaljerad)
 
@@ -205,23 +208,23 @@ skapad: 2024-03-15
 
 ### 4.2 Kundtyper
 
-| Typ | Beskrivning |
-|-----|-------------|
-| `brf` | Bostadsrättsförening |
+| Typ                         | Beskrivning               |
+| --------------------------- | ------------------------- |
+| `brf`                       | Bostadsrättsförening      |
 | `kommunalt_fastighetsbolag` | Kommunalt fastighetsbolag |
-| `privat_fastighetsbolag` | Privat fastighetsbolag |
-| `forvaltningsbolag` | Förvaltningsbolag |
-| `stiftelse` | Stiftelse |
-| `samfallighet` | Samfällighet |
-| `ovrig` | Övrig |
+| `privat_fastighetsbolag`    | Privat fastighetsbolag    |
+| `forvaltningsbolag`         | Förvaltningsbolag         |
+| `stiftelse`                 | Stiftelse                 |
+| `samfallighet`              | Samfällighet              |
+| `ovrig`                     | Övrig                     |
 
 ### 4.3 Kundstatus
 
-| Status | Beskrivning |
-|--------|-------------|
-| `active` | Aktiv kund med pågående avtal |
-| `prospekt` | Potentiell kund |
-| `vilande` | Vilande/pausad kund |
+| Status     | Beskrivning                   |
+| ---------- | ----------------------------- |
+| `active`   | Aktiv kund med pågående avtal |
+| `prospekt` | Potentiell kund               |
+| `vilande`  | Vilande/pausad kund           |
 
 ---
 
@@ -243,7 +246,6 @@ giltig_till: 2024-12-31
 nasta_indexering: 2025-01-01
 fakturering: kvartalsvis
 ---
-
 ## Villkor
 - Timbanken betalas i förskott vid årets början
 - Övertid faktureras löpande månadsvis
@@ -253,22 +255,26 @@ fakturering: kvartalsvis
 ### 4.5 Avtalstyper
 
 #### Löpande (hourly)
+
 - Alla timmar faktureras direkt till timpris
 - Ingen timbank eller fast belopp
 - **Fält:** `timpris`
 
 #### Timbank (timebank)
+
 - X timmar ingår per period
 - Överskridande faktureras som övertid
 - **Fält:** `timpris`, `overtidspris`, `timmar_inkluderade`, `period`
 
 #### Fastpris (fixed)
+
 - Fast månads- eller årsbelopp
 - Timmar loggas för statistik
 - Extraarbete faktureras separat
 - **Fält:** `fast_belopp`, `timpris` (för extra)
 
 #### Engångsbelopp (onetime)
+
 - Engångsuppdrag med fast pris
 - Faktureras vid avslut
 - **Fält:** `fast_belopp`, `timpris` (för extra)
@@ -324,21 +330,21 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 
 ### 4.7 Uppdragstyper
 
-| Typ | Prefix | Beskrivning |
-|-----|--------|-------------|
-| `case` | C-001 | Ärende (störning, andrahand etc.) |
-| `project` | P-001 | Projekt (utredning, undersökning) |
+| Typ       | Prefix | Beskrivning                       |
+| --------- | ------ | --------------------------------- |
+| `case`    | C-001  | Ärende (störning, andrahand etc.) |
+| `project` | P-001  | Projekt (utredning, undersökning) |
 
 ### 4.8 Uppdragskategorier
 
-| Kategori | Beskrivning |
-|----------|-------------|
-| `disturbance` | Störningsutredning |
-| `illegal_sublet` | Olovlig andrahandsuthyrning |
-| `screening` | Boendeundersökning |
-| `renovation_coordination` | Renoveringssamordning |
-| `investigation` | Utredning |
-| `other` | Övrigt |
+| Kategori                  | Beskrivning                 |
+| ------------------------- | --------------------------- |
+| `disturbance`             | Störningsutredning          |
+| `illegal_sublet`          | Olovlig andrahandsuthyrning |
+| `screening`               | Boendeundersökning          |
+| `renovation_coordination` | Renoveringssamordning       |
+| `investigation`           | Utredning                   |
+| `other`                   | Övrigt                      |
 
 ### 4.9 Status och prioritet
 
@@ -362,31 +368,33 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 
 ```markdown
 ### {DATUM} | {TYP} | {KONSULT} | {TID} | {FLAGGOR}
+
 {ANTECKNINGSTEXT}
+
 > Fakturatext: {BILLING_COMMENT}
 ```
 
 **Fält:**
 
-| Fält | Format | Exempel |
-|------|--------|---------|
-| Datum | YYYY-MM-DD | 2026-01-18 |
-| Typ | samtal/mail/möte/platsbesök/anteckning | Samtal |
-| Konsult | Namn | Peter |
-| Tid | X min / X h / X.X h | 30 min |
-| Flaggor | extra, timbank, övertid | extra |
-| Anteckningstext | Fritext | Pratat med... |
-| Fakturatext | Efter `> Fakturatext:` | Uppföljningssamtal |
+| Fält            | Format                                 | Exempel            |
+| --------------- | -------------------------------------- | ------------------ |
+| Datum           | YYYY-MM-DD                             | 2026-01-18         |
+| Typ             | samtal/mail/möte/platsbesök/anteckning | Samtal             |
+| Konsult         | Namn                                   | Peter              |
+| Tid             | X min / X h / X.X h                    | 30 min             |
+| Flaggor         | extra, timbank, övertid                | extra              |
+| Anteckningstext | Fritext                                | Pratat med...      |
+| Fakturatext     | Efter `> Fakturatext:`                 | Uppföljningssamtal |
 
 **Entry types:**
 
-| Typ | Intern kod |
-|-----|------------|
-| Samtal | call |
-| Mail | email |
-| Möte | meeting |
+| Typ        | Intern kod |
+| ---------- | ---------- |
+| Samtal     | call       |
+| Mail       | email      |
+| Möte       | meeting    |
 | Platsbesök | site_visit |
-| Anteckning | note |
+| Anteckning | note       |
 
 ---
 
@@ -394,12 +402,14 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 
 ```markdown
 ## Uppgifter
+
 - [ ] Beskrivning @Tilldelad #Deadline
 - [-] Pågående uppgift @Tilldelad
 - [x] Klar uppgift @Tilldelad ✓Slutdatum
 ```
 
 **Status:**
+
 - `[ ]` = pending
 - `[-]` = in_progress
 - `[x]` = done
@@ -409,21 +419,26 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 ### 4.12 Arbetsyta (globala uppgifter + anteckningar)
 
 **/Arbetsyta/uppgifter.md**
+
 ```markdown
 # Uppgifter
 
 ## Att göra
+
 - [ ] Boka styrelsemöte Q2 @Jonas #2026-02-01 !high
 - [ ] Uppdatera hemsidan @Sandra #2026-01-25
 
 ## Pågående
+
 - [-] Skriva årsrapport @Jonas
 
 ## Klara (senaste 7 dagarna)
+
 - [x] Fakturera januari ✓2026-01-15 @Sandra
 ```
 
 **/Arbetsyta/Anteckningar/2026-01-18-idé-varningsbrev.md**
+
 ```yaml
 ---
 skapad: 2026-01-18T09:30:00
@@ -442,16 +457,16 @@ Prata med advokaten om formuleringar.
 
 ### 5.1 Modulöversikt
 
-| Modul | Beskrivning | Källa |
-|-------|-------------|-------|
-| **Dashboard** | Översikt, KPI, uppgifter | Aggregerad |
-| **Kunder** | Lista + detalj | /Kunder - GBG + STHLM |
-| **Uppdrag** | Lista över alla uppdrag | Aggregerad från kunder |
-| **Arbetsyta** | Uppgifter + anteckningar | /Arbetsyta |
-| **Fakturering** | Underlag, export | Aggregerad |
-| **Kunskapsbank** | Rutiner, juridik | /Kunskapsbank |
-| **Intranät** | Intern info | /Intranät |
-| **Grannfrid AB** | Ägare: ekonomi, personal | /Grannfrid AB |
+| Modul            | Beskrivning              | Källa                  |
+| ---------------- | ------------------------ | ---------------------- |
+| **Dashboard**    | Översikt, KPI, uppgifter | Aggregerad             |
+| **Kunder**       | Lista + detalj           | /Kunder - GBG + STHLM  |
+| **Uppdrag**      | Lista över alla uppdrag  | Aggregerad från kunder |
+| **Arbetsyta**    | Uppgifter + anteckningar | /Arbetsyta             |
+| **Fakturering**  | Underlag, export         | Aggregerad             |
+| **Kunskapsbank** | Rutiner, juridik         | /Kunskapsbank          |
+| **Intranät**     | Intern info              | /Intranät              |
+| **Grannfrid AB** | Ägare: ekonomi, personal | /Grannfrid AB          |
 
 ### 5.2 Dashboard
 
@@ -488,6 +503,7 @@ Prata med advokaten om formuleringar.
 ```
 
 **Admin-tillägg (för Jonas/Sandra):**
+
 ```
 │  Team                                                       │
 │  ─────                                                      │
@@ -603,13 +619,13 @@ Faktureringsmodulen visar allt som är redo att faktureras och möjliggör expor
 
 ### 6.2 Fakturerbara poster
 
-| Typ | Källa | Trigger |
-|-----|-------|---------|
-| Tidsregistrering | Journal med timmar | Löpande |
-| Övertid | Timbank-split | När banken tar slut |
-| Extraarbete | `extra`-flagga | Löpande |
-| Månadsavgift | Fastpris-avtal | Månatligen |
-| Årsavgift | Timbank/fastpris år | Årligen |
+| Typ              | Källa               | Trigger             |
+| ---------------- | ------------------- | ------------------- |
+| Tidsregistrering | Journal med timmar  | Löpande             |
+| Övertid          | Timbank-split       | När banken tar slut |
+| Extraarbete      | `extra`-flagga      | Löpande             |
+| Månadsavgift     | Fastpris-avtal      | Månatligen          |
+| Årsavgift        | Timbank/fastpris år | Årligen             |
 
 ### 6.3 Faktureringsvyn
 
@@ -693,12 +709,12 @@ Långt samtal med hyresgäst om störning.
 
 ### 6.6 Faktureringsstatus
 
-| Status | Beskrivning |
-|--------|-------------|
-| `draft` | Skapad, ej granskad |
-| `review` | Under granskning |
+| Status     | Beskrivning             |
+| ---------- | ----------------------- |
+| `draft`    | Skapad, ej granskad     |
+| `review`   | Under granskning        |
 | `exported` | Exporterad till Fortnox |
-| `locked` | Låst, kan ej ändras |
+| `locked`   | Låst, kan ej ändras     |
 
 ### 6.7 Export till Fortnox
 
@@ -747,15 +763,15 @@ Kundnummer;Fakturadatum;Förfallodatum;Artikelnummer;Beskrivning;Antal;Pris;Moms
 
 ### 7.2 AI-kapabiliteter
 
-| Funktion | Beskrivning |
-|----------|-------------|
-| **Söka** | Hitta ärenden, kunder, historik |
-| **Sammanfatta** | Sammanfatta ärenden, möten, perioder |
-| **Skapa** | Ny kund, nytt ärende, journalpost |
-| **Uppdatera** | Logga tid, ändra status, lägga till kontakt |
-| **Analysera** | Hitta mönster, jämföra perioder |
-| **Generera** | Skriva brev, rapporter, mail |
-| **Svara** | Frågor om rutiner, juridik (från Kunskapsbank) |
+| Funktion        | Beskrivning                                    |
+| --------------- | ---------------------------------------------- |
+| **Söka**        | Hitta ärenden, kunder, historik                |
+| **Sammanfatta** | Sammanfatta ärenden, möten, perioder           |
+| **Skapa**       | Ny kund, nytt ärende, journalpost              |
+| **Uppdatera**   | Logga tid, ändra status, lägga till kontakt    |
+| **Analysera**   | Hitta mönster, jämföra perioder                |
+| **Generera**    | Skriva brev, rapporter, mail                   |
+| **Svara**       | Frågor om rutiner, juridik (från Kunskapsbank) |
 
 ### 7.3 Whisper-diktering
 
@@ -799,13 +815,13 @@ AI: Enligt våra rutiner (störningsärende-guide.md):
 
 ### 8.1 Teams-notifikationer
 
-| Trigger | Notifikation |
-|---------|--------------|
-| Ny tilldelad uppgift | "Du har fått en ny uppgift: {titel}" |
-| Deadline imorgon | "Påminnelse: {uppgift} förfaller imorgon" |
-| Deadline passerad | "⚠️ Förfallen: {uppgift}" |
-| Nytt ärende tilldelat | "Nytt ärende: {nummer} {titel}" |
-| Omnämnd i journal | "{konsult} nämnde dig i {ärende}" |
+| Trigger               | Notifikation                              |
+| --------------------- | ----------------------------------------- |
+| Ny tilldelad uppgift  | "Du har fått en ny uppgift: {titel}"      |
+| Deadline imorgon      | "Påminnelse: {uppgift} förfaller imorgon" |
+| Deadline passerad     | "⚠️ Förfallen: {uppgift}"                 |
+| Nytt ärende tilldelat | "Nytt ärende: {nummer} {titel}"           |
+| Omnämnd i journal     | "{konsult} nämnde dig i {ärende}"         |
 
 ### 8.2 Tidsloggnings-påminnelse
 
@@ -833,30 +849,129 @@ När konsult stänger ett ärende utan att ha loggat tid:
 
 ### 9.2 Färgpalett
 
-| Namn | RGB | Hex | Användning |
-|------|-----|-----|------------|
-| sage | 135, 169, 107 | #87A96B | Primärfärg, CTA |
-| terracotta | 212, 103, 74 | #D4674A | Varningar, fel |
-| lavender | 155, 143, 191 | #9B8FBF | Info, accenter |
-| charcoal | 44, 40, 36 | #2C2824 | Text |
-| ash | 90, 85, 80 | #5A5550 | Sekundär text |
-| cream | 249, 247, 244 | #F9F7F4 | Bakgrund |
-| sand | 240, 237, 232 | #F0EDE8 | Kort, borders |
+| Namn       | RGB           | Hex     | Användning      |
+| ---------- | ------------- | ------- | --------------- |
+| sage       | 135, 169, 107 | #87A96B | Primärfärg, CTA |
+| terracotta | 212, 103, 74  | #D4674A | Varningar, fel  |
+| lavender   | 155, 143, 191 | #9B8FBF | Info, accenter  |
+| charcoal   | 44, 40, 36    | #2C2824 | Text            |
+| ash        | 90, 85, 80    | #5A5550 | Sekundär text   |
+| cream      | 249, 247, 244 | #F9F7F4 | Bakgrund        |
+| sand       | 240, 237, 232 | #F0EDE8 | Kort, borders   |
 
 ### 9.3 Typografi
 
-| Typ | Font | Användning |
-|-----|------|------------|
-| Display | Lora (serif) | Rubriker, titlar |
-| Body | Inter (sans-serif) | Brödtext, UI |
+| Typ     | Font               | Användning       |
+| ------- | ------------------ | ---------------- |
+| Display | Lora (serif)       | Rubriker, titlar |
+| Body    | Inter (sans-serif) | Brödtext, UI     |
 
 ### 9.4 Prioritetsindikatorer
 
-| Prioritet | Indikator |
-|-----------|-----------|
-| Hög | 🔴 Röd punkt |
-| Medium | 🟡 Gul punkt |
-| Låg | 🟢 Grön punkt |
+| Prioritet | Indikator     |
+| --------- | ------------- |
+| Hög       | 🔴 Röd punkt  |
+| Medium    | 🟡 Gul punkt  |
+| Låg       | 🟢 Grön punkt |
+
+### 9.5 Layout och navigation
+
+#### Desktop-layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  [Logo]  Grannfrid                              [Sök] [Notis] [Profil]  │
+├──────────────┬──────────────────────────────────────────────────────────┤
+│              │                                                          │
+│  Dashboard   │                                                          │
+│              │               HUVUDINNEHÅLL                              │
+│  Kunder ▼    │                                                          │
+│   Göteborg   │                                                          │
+│   Stockholm  │                                                          │
+│              │                                                          │
+│  Uppdrag     │                                                          │
+│              │                                                          │
+│  Arbetsyta   │                                                          │
+│              │                                                          │
+│  Fakturering │                                                          │
+│              │                                                          │
+│  Kunskapsbank│                                                          │
+│              │                                                          │
+│  Intranät    │                                                          │
+│              │                                                          │
+│  [Ägare]     │                                                          │
+│  Grannfrid AB│                                                          │
+│              │                                                          │
+├──────────────┴──────────────────────────────────────────────────────────┤
+│  🎤 [AI-chatt - diktering och kommandon]          [Kollapsa ▼]         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Sidebar-navigation
+
+| Menypost     | Beskrivning                           | Behörighet |
+| ------------ | ------------------------------------- | ---------- |
+| Dashboard    | Översikt, aktiva ärenden, påminnelser | Alla       |
+| Kunder       | Expanderbar: Göteborg, Stockholm      | Alla       |
+| Uppdrag      | Genväg till alla aktiva ärenden       | Alla       |
+| Arbetsyta    | Uppgifter + Anteckningar kombinerat   | Alla       |
+| Fakturering  | Fakturaunderlag och export            | Admin      |
+| Kunskapsbank | Kunskapsdokument, FAQ, mallar         | Alla       |
+| Intranät     | Internt material, nyheter             | Alla       |
+| Grannfrid AB | Företagsinformation, ekonomi          | Ägare      |
+
+#### AI-chatt panel
+
+- **Position:** Nederkant, alltid synlig (kollapsbar)
+- **Funktioner:**
+  - Dikteringsknapp (Whisper) för röstinmatning
+  - Textinput för skriftliga kommandon
+  - Snabbknappar för vanliga operationer
+  - Visar senaste AI-svar
+- **Expanderat läge:** Tar upp ~30% av skärmhöjden
+- **Kollapserat läge:** Endast inputfält synligt
+
+#### Mobil-layout
+
+```
+┌─────────────────────────┐
+│ [☰]  Grannfrid    [🔔] │
+├─────────────────────────┤
+│                         │
+│    HUVUDINNEHÅLL        │
+│                         │
+│                         │
+├─────────────────────────┤
+│ 🎤 [AI-chatt...]        │
+└─────────────────────────┘
+```
+
+- **Hamburger-meny (☰):** Öppnar sidebar som overlay
+- **AI-chatt:** Förblir synlig i botten
+- **Gester:** Swipe för att navigera mellan ärenden
+
+#### Responsiva brytpunkter
+
+| Brytpunkt | Bredd      | Beteende                |
+| --------- | ---------- | ----------------------- |
+| sm        | < 640px    | Mobil, hamburgermeny    |
+| md        | 640-1024px | Tablet, kompakt sidebar |
+| lg        | > 1024px   | Desktop, full sidebar   |
+
+### 9.6 Komponent-bibliotek
+
+Baseras på Radix UI med custom styling:
+
+| Komponent | Radix-bas      | Användning             |
+| --------- | -------------- | ---------------------- |
+| Button    | Button         | Alla knappar           |
+| Dialog    | Dialog         | Bekräftelser, formulär |
+| Dropdown  | DropdownMenu   | Kontextmenyer          |
+| Select    | Select         | Val i formulär         |
+| Tabs      | Tabs           | Fliknavigation         |
+| Toast     | Toast (Sonner) | Notifikationer         |
+| Tooltip   | Tooltip        | Hjälptexter            |
+| Sheet     | Dialog         | Sidopaneler på mobil   |
 
 ---
 
@@ -870,11 +985,11 @@ När konsult stänger ett ärende utan att ha loggat tid:
 
 ### 10.2 Behörigheter
 
-| Nivå | Åtkomst |
-|------|---------|
+| Nivå    | Åtkomst                       |
+| ------- | ----------------------------- |
 | Konsult | /Grannfrid (allt utom System) |
-| Admin | /Grannfrid + System |
-| Ägare | Allt + /Grannfrid AB |
+| Admin   | /Grannfrid + System           |
+| Ägare   | Allt + /Grannfrid AB          |
 
 ### 10.3 GDPR
 
@@ -901,7 +1016,6 @@ senaste_arendenummer: 127
 senaste_projektnummer: 23
 app_version: 1.0.0
 ---
-
 ## Inställningar
 - Faktureringsdag: Sista vardagen varje månad
 - Standardprioritet: medium
@@ -912,13 +1026,13 @@ app_version: 1.0.0
 
 ## 12. Icke-mål (nu)
 
-| Funktion | Status | Motivering |
-|----------|--------|------------|
-| Rich text-editor | Bortvald | Plain text räcker |
-| Kvällspris | Borttagen | Användes aldrig |
-| Attestering | Ej behov | Litet team |
-| Offline-läge | Framtid | Sverige har bra nät |
-| Kundportal | Framtid | SharePoint-delning räcker |
+| Funktion         | Status    | Motivering                |
+| ---------------- | --------- | ------------------------- |
+| Rich text-editor | Bortvald  | Plain text räcker         |
+| Kvällspris       | Borttagen | Användes aldrig           |
+| Attestering      | Ej behov  | Litet team                |
+| Offline-läge     | Framtid   | Sverige har bra nät       |
+| Kundportal       | Framtid   | SharePoint-delning räcker |
 
 ---
 
@@ -926,28 +1040,28 @@ app_version: 1.0.0
 
 ### 13.1 Mappning
 
-| Nuvarande | Ny |
-|-----------|-----|
-| KUNDER - GBG | /Kunder - Göteborg |
-| KUNDER - STHLM | /Kunder - Stockholm |
-| Kunskapsdokument | /Kunskapsbank |
-| MALLAR | /Mallar |
-| Rutiner | /Kunskapsbank/Rutiner |
-| PERSONAL | /Intranät/Personal |
+| Nuvarande        | Ny                    |
+| ---------------- | --------------------- |
+| KUNDER - GBG     | /Kunder - Göteborg    |
+| KUNDER - STHLM   | /Kunder - Stockholm   |
+| Kunskapsdokument | /Kunskapsbank         |
+| MALLAR           | /Mallar               |
+| Rutiner          | /Kunskapsbank/Rutiner |
+| PERSONAL         | /Intranät/Personal    |
 
 ### 13.2 Kundmapp-migrering
 
-| Nuvarande | Ny |
-|-----------|-----|
-| Kontaktuppgifter/ | → kund.md (Kontakter-sektion) |
-| Nedlagda timmar/ | → uppdrag.md (Journal-sektion) |
-| Störningsärenden/ | → /Uppdrag |
-| Avtal/ | → /Avtal |
+| Nuvarande         | Ny                             |
+| ----------------- | ------------------------------ |
+| Kontaktuppgifter/ | → kund.md (Kontakter-sektion)  |
+| Nedlagda timmar/  | → uppdrag.md (Journal-sektion) |
+| Störningsärenden/ | → /Uppdrag                     |
+| Avtal/            | → /Avtal                       |
 
 ---
 
 ## Ändringslogg
 
-| Datum | Version | Ändringar |
-|-------|---------|-----------|
-| 2026-01-18 | 1.0 | Initial SharePoint-specifikation |
+| Datum      | Version | Ändringar                        |
+| ---------- | ------- | -------------------------------- |
+| 2026-01-18 | 1.0     | Initial SharePoint-specifikation |
