@@ -1,6 +1,6 @@
 # Grannfrid App – SharePoint Edition
 
-**Version:** 1.0
+**Version:** 1.2
 **Datum:** 2026-01-18
 **Syfte:** Fullständig specifikation för Grannfrid-appen med SharePoint som backend
 
@@ -47,20 +47,22 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │              AI-CHATT (alltid närvarande)            │   │
-│  │              Claude API + Gemini Flash               │   │
+│  │         Claude (EU) + Gemini (Vertex AI EU)          │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                             │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  MICROSOFT GRAPH API                         │
-│           (Läs/skriv filer, kalender, mail)                 │
-└─────────────────────────────────────────────────────────────┘
-                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+┌──────────────────────────┐  ┌──────────────────────────────┐
+│   MICROSOFT GRAPH API    │  │      AZURE FUNCTIONS         │
+│  (Läs/skriv, kalender)   │  │  (Affärslogik, timbank-split)│
+└──────────────────────────┘  └──────────────────────────────┘
+              │                           │
+              └─────────────┬─────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                     SHAREPOINT                               │
-│              (Markdown-filer = Databas)                     │
+│              (Markdown-filer + JSON-index)                  │
 │                                                             │
 │  /Grannfrid              /Grannfrid AB                      │
 │  (alla konsulter)        (endast ägare)                     │
@@ -69,29 +71,201 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 
 ### 2.2 Teknisk stack
 
-| Lager          | Teknologi                  |
-| -------------- | -------------------------- |
-| Frontend       | React 18 + TypeScript      |
-| Byggverktyg    | Vite                       |
-| Styling        | Tailwind CSS               |
-| State          | TanStack React Query       |
-| Forms          | React Hook Form + Zod      |
-| Routing        | React Router               |
-| UI-komponenter | Radix UI                   |
-| Ikoner         | Lucide React               |
-| Toasts         | Sonner                     |
-| Auth           | Microsoft SSO (via MSAL)   |
-| Backend        | SharePoint (via Graph API) |
-| AI             | Claude API + Gemini Flash  |
-| Röst           | Whisper API                |
+| Lager          | Teknologi                     |
+| -------------- | ----------------------------- |
+| Frontend       | React 18 + TypeScript         |
+| Byggverktyg    | Vite                          |
+| Styling        | Tailwind CSS                  |
+| State          | TanStack React Query          |
+| Forms          | React Hook Form + Zod         |
+| Routing        | React Router                  |
+| UI-komponenter | Radix UI                      |
+| Ikoner         | Lucide React                  |
+| Toasts         | Sonner                        |
+| Auth           | Microsoft SSO (via MSAL)      |
+| Backend        | SharePoint (via Graph API)    |
+| Serverless     | Azure Functions (affärslogik) |
+| AI             | Claude (EU) + Vertex AI (EU)  |
+| Röst           | Whisper API                   |
 
-### 2.3 AI-strategi
+### 2.3 AI-strategi (GDPR-säker)
 
-| AI               | Användning                                         |
-| ---------------- | -------------------------------------------------- |
-| **Claude**       | Konversation, analys, skrivande, komplexa frågor   |
-| **Gemini Flash** | Bulk-operationer, beräkningar, billigare uppgifter |
-| **Whisper**      | Tal till text (diktering)                          |
+| AI               | Deployment           | Region                    | Användning                      |
+| ---------------- | -------------------- | ------------------------- | ------------------------------- |
+| **Claude**       | Anthropic API        | EU (AWS Frankfurt)        | Konversation, analys, skrivande |
+| **Gemini Flash** | Vertex AI (GCP)      | `europe-north1` (Finland) | Bulk-operationer, beräkningar   |
+| **Whisper**      | Azure Speech / Lokal | EU                        | Tal till text (diktering)       |
+
+#### GDPR-garanti
+
+- **Ingen träning:** Varken Anthropic eller Google tränar på din data via enterprise-API:er
+- **Data residency:** All data processas och lagras inom EU
+- **Isolering:** Din data blandas inte med andra kunders
+
+#### Konfiguration
+
+```typescript
+// lib/ai/gemini.ts
+import { VertexAI } from "@google-cloud/vertexai";
+
+export const gemini = new VertexAI({
+  project: process.env.GCP_PROJECT_ID,
+  location: "europe-north1", // Finland - GDPR-säkert
+});
+
+// lib/ai/claude.ts
+import Anthropic from "@anthropic-ai/sdk";
+
+export const claude = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: "https://api.anthropic.com", // EU routing via AWS
+});
+```
+
+### 2.4 Concurrency & Filåtkomst
+
+#### Problemet
+
+Två konsulter redigerar samma fil samtidigt → sista sparningen vinner, data förloras.
+
+#### Lösningen: ETag-baserad Optimistic Locking
+
+```typescript
+// lib/graph/file-operations.ts
+
+async function updateFileWithLock(
+  path: string,
+  content: string,
+  etag: string,
+): Promise<{ success: boolean; newEtag: string }> {
+  try {
+    const response = await graphClient
+      .api(`/sites/${siteId}/drive/root:${path}:/content`)
+      .header("If-Match", etag) // Endast om filen är oförändrad
+      .put(content);
+
+    return { success: true, newEtag: response.eTag };
+  } catch (error) {
+    if (error.statusCode === 412) {
+      // Precondition Failed - någon annan har ändrat filen
+      throw new ConcurrencyError(
+        "Filen har ändrats av någon annan. Ladda om och försök igen.",
+      );
+    }
+    throw error;
+  }
+}
+```
+
+#### UI-hantering
+
+```
+┌────────────────────────────────────────────────┐
+│ ⚠️ Konflikt upptäckt                           │
+│                                                │
+│ Peter sparade ändringar i detta ärende         │
+│ medan du redigerade.                           │
+│                                                │
+│ Dina ändringar:                                │
+│ + Samtal med Magnus 30 min                     │
+│                                                │
+│ [Ladda om & behåll mina] [Visa Peters version] │
+└────────────────────────────────────────────────┘
+```
+
+### 2.5 Backend-logik (Azure Functions)
+
+Affärskritisk logik körs **inte** i frontend utan i Azure Functions:
+
+| Function            | Trigger         | Ansvar                                  |
+| ------------------- | --------------- | --------------------------------------- |
+| `timbank-calculate` | HTTP / Timer    | Beräkna timbank-split, uppdatera ledger |
+| `index-rebuild`     | Timer (nattlig) | Bygg om System Index från källfiler     |
+| `billing-aggregate` | HTTP            | Aggregera faktureringsunderlag          |
+| `journal-validate`  | HTTP            | Validera journalpost innan sparning     |
+
+#### Timbank-split Function
+
+```typescript
+// functions/timbank-calculate/index.ts
+import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+
+interface TimebankSplitRequest {
+  agreement_id: string;
+  minutes: number;
+  entry_id: string;
+}
+
+const timebankCalculate: AzureFunction = async (
+  context: Context,
+  req: HttpRequest,
+): Promise<void> => {
+  const { agreement_id, minutes, entry_id } = req.body as TimebankSplitRequest;
+
+  // 1. Hämta ledger
+  const ledger = await getLedger(agreement_id);
+
+  // 2. Beräkna split
+  const remaining = ledger.computed.remaining_minutes;
+
+  if (minutes <= remaining) {
+    // Allt ryms i timbanken
+    await addLedgerEntry(ledger, {
+      type: "usage",
+      minutes,
+      entry_id,
+      balance_after: remaining - minutes,
+    });
+
+    context.res = {
+      body: {
+        billing_lines: [
+          {
+            type: "timebank",
+            minutes,
+            rate: 0,
+            amount: 0,
+          },
+        ],
+      },
+    };
+  } else {
+    // Split krävs
+    const overtimeMinutes = minutes - remaining;
+    const rate = ledger.overtime_rate;
+
+    await addLedgerEntry(ledger, {
+      type: "usage",
+      minutes: remaining,
+      entry_id,
+      balance_after: 0,
+    });
+
+    await addLedgerEntry(ledger, {
+      type: "overtime",
+      minutes: overtimeMinutes,
+      entry_id,
+      balance_after: 0,
+    });
+
+    context.res = {
+      body: {
+        billing_lines: [
+          { type: "timebank", minutes: remaining, rate: 0, amount: 0 },
+          {
+            type: "overtime",
+            minutes: overtimeMinutes,
+            rate,
+            amount: (overtimeMinutes / 60) * rate,
+          },
+        ],
+      },
+    };
+  }
+};
+
+export default timebankCalculate;
+```
 
 ---
 
@@ -430,6 +604,49 @@ Journalposter i markdown är **narrativa** - mänskligt läsbara anteckningar.
 | Möte       | meeting    |
 | Platsbesök | site_visit |
 | Anteckning | note       |
+
+#### Alternativ: Separata journalfiler (rekommenderas)
+
+För att undvika merge-konflikter kan journalposter lagras som **separata filer**:
+
+```
+/Uppdrag/C-26-047 Störning Ekvägen/
+├── uppdrag.md                    # Metadata + uppgifter (ingen journal)
+└── /Journal/
+    ├── jrn_2026-01-10_abc123.md  # En fil per post
+    ├── jrn_2026-01-15_def456.md
+    ├── jrn_2026-01-17_ghi789.md
+    └── jrn_2026-01-18_jkl012.md
+```
+
+**Fördelar:**
+
+- Ingen risk för överskrivning vid samtidig redigering
+- Enklare ETag-hantering (en fil per post)
+- Snabbare diff vid synkronisering
+
+**Journalfil-format:**
+
+```yaml
+---
+entry_id: jrn_2026-01-18_jkl012
+case_id: C-26-047
+date: 2026-01-18
+type: call
+consultant_id: user_peter
+minutes: 30
+flags: []
+billing_text: null
+---
+Pratat med hyresgäst Magnus. Han nekar till störning, hävdar att det var engångsfest för födelsedag. Verkar defensiv men samarbetsvillig. Lovade att vara tystare framöver.
+```
+
+**Val av strategi:**
+
+| Strategi              | Användning                                          |
+| --------------------- | --------------------------------------------------- |
+| Inbäddad i uppdrag.md | Enklare vid få poster, bra för läsning              |
+| Separata filer        | Rekommenderas vid > 5 konsulter eller hög aktivitet |
 
 ---
 
@@ -1400,6 +1617,8 @@ app_version: 1.0.0
 
 ## Ändringslogg
 
-| Datum      | Version | Ändringar                        |
-| ---------- | ------- | -------------------------------- |
-| 2026-01-18 | 1.0     | Initial SharePoint-specifikation |
+| Datum      | Version | Ändringar                                                                |
+| ---------- | ------- | ------------------------------------------------------------------------ |
+| 2026-01-18 | 1.2     | Concurrency, Azure Functions, GDPR-säker AI, separata journalfiler       |
+| 2026-01-18 | 1.1     | Stabila ID:n, System Index, BillingLine, Agreement Ledger, AI guardrails |
+| 2026-01-18 | 1.0     | Initial SharePoint-specifikation                                         |
