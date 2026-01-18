@@ -82,6 +82,67 @@ MCP-servern för GitHub är inbyggd i Claude Code och aktiveras automatiskt när
 
 ---
 
+## Rekommenderade MCP-servrar
+
+### 4. Context7 MCP
+
+**Syfte:** Realtidsdokumentation för React, Radix UI, Microsoft Graph, Tailwind m.m.
+
+**Status:** Rekommenderas för utveckling
+
+#### Konfiguration
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/context7-mcp"]
+    }
+  }
+}
+```
+
+#### Användning
+
+Context7 ger Claude tillgång till aktuell dokumentation utan att behöva web-sökningar:
+
+```
+> Hur använder jag Radix Dialog med controlled state?
+> Vilka hooks finns i Microsoft Graph React SDK?
+```
+
+---
+
+### 5. Sequential Thinking MCP
+
+**Syfte:** Strukturerad problemlösning för komplex arkitektur och affärslogik
+
+**Status:** Rekommenderas för timbank-split och faktureringslogik
+
+#### Konfiguration
+
+```json
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/sequential-thinking-mcp"]
+    }
+  }
+}
+```
+
+#### Användning
+
+Särskilt användbart för:
+- Timbank-split beräkningar
+- Faktureringsflöden
+- Datamodellering
+- Edge cases i affärslogik
+
+---
+
 ## Framtida MCP-möjligheter
 
 ### Fortnox MCP (finns ej officiellt)

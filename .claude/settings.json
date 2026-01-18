@@ -10,6 +10,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f \"$CLAUDE_PROJECT_DIR/package.json\" ] && command -v npx &> /dev/null; then npx prettier --write \"$TOOL_INPUT_FILE_PATH\" 2>/dev/null || true; fi"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
@@ -18,6 +29,7 @@
       "Bash(npm run *)",
       "Bash(npx *)",
       "Bash(git *)",
+      "Bash(prettier *)",
       "Read",
       "Write",
       "Edit"

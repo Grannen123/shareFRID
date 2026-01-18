@@ -10,6 +10,7 @@ This directory contains Claude Code configuration for the Grannfrid project.
 |------|---------|
 | `settings.json` | Permissions and hooks |
 | `hooks/session-start.sh` | Install dependencies on session start |
+| `SKILLS.md` | Custom slash commands documentation |
 
 ---
 
@@ -39,6 +40,13 @@ Enables SharePoint, Outlook, and Calendar access.
 
 See `docs/MCP-SETUP.md` for detailed setup instructions.
 
+### Additional Recommended MCPs
+
+| MCP | Purpose |
+|-----|---------|
+| `context7` | Real-time documentation for React, Radix, Graph API |
+| `sequential-thinking` | Structured problem-solving for complex logic |
+
 ---
 
 ## Recommended Skills
@@ -60,6 +68,12 @@ These skills would enhance development:
 Runs when a new session starts. Currently:
 - Installs npm dependencies (if package.json exists)
 - Only runs in remote/web environment
+
+### PostToolUse
+
+Runs after Write/Edit operations:
+- Auto-formats files with Prettier (if available)
+- Only runs if package.json exists
 
 ### Stop (Global)
 
