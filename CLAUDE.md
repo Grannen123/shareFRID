@@ -12,13 +12,13 @@ Grannfrid is a CRM/productivity app for housing consultants managing disturbance
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
+| File                      | Purpose                                                         |
+| ------------------------- | --------------------------------------------------------------- |
 | `docs/SPEC-SHAREPOINT.md` | **Primary specification** - All business logic, data models, UI |
-| `docs/SPEC-ORIGINAL.md` | Reference from previous Supabase version |
-| `docs/ARCHITECTURE.md` | Technical architecture and patterns |
-| `docs/ROADMAP.md` | Development phases and priorities |
-| `docs/SETUP.md` | Environment setup instructions |
+| `docs/SPEC-ORIGINAL.md`   | Reference from previous Supabase version                        |
+| `docs/ARCHITECTURE.md`    | Technical architecture and patterns                             |
+| `docs/ROADMAP.md`         | Development phases and priorities                               |
+| `docs/SETUP.md`           | Environment setup instructions                                  |
 
 **Always read `docs/SPEC-SHAREPOINT.md` before making significant changes.**
 
@@ -28,15 +28,15 @@ Grannfrid is a CRM/productivity app for housing consultants managing disturbance
 
 ### Core Entities
 
-| Swedish | English | Description |
-|---------|---------|-------------|
-| Kund | Customer | Housing association or property company |
-| Uppdrag | Assignment | Case (C-xxx) or Project (P-xxx) |
-| Ärende | Case | Disturbance, illegal sublet, etc. |
-| Journal | Journal | Log entries with time tracking |
-| Avtal | Agreement | Contract (hourly/timebank/fixed) |
-| Timbank | Time bank | Prepaid hours that are drawn down |
-| Faktura | Invoice | Billing to customer |
+| Swedish | English    | Description                             |
+| ------- | ---------- | --------------------------------------- |
+| Kund    | Customer   | Housing association or property company |
+| Uppdrag | Assignment | Case (C-xxx) or Project (P-xxx)         |
+| Ärende  | Case       | Disturbance, illegal sublet, etc.       |
+| Journal | Journal    | Log entries with time tracking          |
+| Avtal   | Agreement  | Contract (hourly/timebank/fixed)        |
+| Timbank | Time bank  | Prepaid hours that are drawn down       |
+| Faktura | Invoice    | Billing to customer                     |
 
 ### Agreement Types (Critical for Billing)
 
@@ -48,6 +48,7 @@ Grannfrid is a CRM/productivity app for housing consultants managing disturbance
 ### Timbank Split Logic
 
 When time exceeds the bank:
+
 ```
 5h remaining + 8h logged =
   → 5h (timebank, 0 kr)
@@ -67,12 +68,12 @@ This split MUST be automatic and update the agreement's `timmar_anvanda` field.
 interface Customer {
   fortnoxKundnummer: string;
   namn: string;
-  status: 'active' | 'prospekt' | 'vilande';
+  status: "active" | "prospekt" | "vilande";
 }
 
 // Use React Query for data fetching
 const { data, isLoading } = useQuery({
-  queryKey: ['customers'],
+  queryKey: ["customers"],
   queryFn: fetchCustomers,
 });
 
@@ -108,13 +109,13 @@ src/
 
 ### Naming
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `CustomerList.tsx` |
-| Hooks | camelCase, use-prefix | `useCustomers.ts` |
-| Utils | camelCase | `parseMarkdown.ts` |
-| Types | PascalCase | `Customer`, `Assignment` |
-| Constants | UPPER_SNAKE | `CUSTOMER_TYPES` |
+| Type       | Convention            | Example                  |
+| ---------- | --------------------- | ------------------------ |
+| Components | PascalCase            | `CustomerList.tsx`       |
+| Hooks      | camelCase, use-prefix | `useCustomers.ts`        |
+| Utils      | camelCase             | `parseMarkdown.ts`       |
+| Types      | PascalCase            | `Customer`, `Assignment` |
+| Constants  | UPPER_SNAKE           | `CUSTOMER_TYPES`         |
 
 ---
 
@@ -123,7 +124,7 @@ src/
 ### Reading a customer file
 
 ```typescript
-import matter from 'gray-matter';
+import matter from "gray-matter";
 
 async function getCustomer(path: string): Promise<Customer> {
   const content = await graphClient.getFileContent(path);
@@ -142,7 +143,7 @@ async function getCustomer(path: string): Promise<Customer> {
 ```typescript
 async function addJournalEntry(
   assignmentPath: string,
-  entry: JournalEntry
+  entry: JournalEntry,
 ): Promise<void> {
   const current = await graphClient.getFileContent(assignmentPath);
   const { data, content } = matter(current);
@@ -158,10 +159,13 @@ async function addJournalEntry(
 
 ```markdown
 ### 2026-01-18 | Samtal | Peter | 30 min
+
 Anteckningstext här.
 
 ### 2026-01-18 | Mail | Peter | 15 min | extra
+
 Extraarbete markerat med "extra" flagga.
+
 > Fakturatext: Text som visas på fakturan
 ```
 
@@ -200,7 +204,7 @@ const systemPrompt = `
   Du är Grannfrids AI-assistent.
 
   Använd denna kunskap:
-  ${relevantDocs.map(d => d.content).join('\n\n')}
+  ${relevantDocs.map((d) => d.content).join("\n\n")}
 `;
 ```
 
@@ -276,11 +280,11 @@ This project uses Microsoft Graph API, not a custom backend.
 
 This project benefits from these MCP servers:
 
-| MCP | Purpose | Required |
-|-----|---------|----------|
-| `@microsoft/graph-mcp` | SharePoint, Outlook, Calendar | Yes |
-| `github` | Repository operations | Yes |
-| `filesystem` | Local file operations | Optional |
+| MCP                    | Purpose                       | Required |
+| ---------------------- | ----------------------------- | -------- |
+| `@microsoft/graph-mcp` | SharePoint, Outlook, Calendar | Yes      |
+| `github`               | Repository operations         | Yes      |
+| `filesystem`           | Local file operations         | Optional |
 
 ### Setting up Microsoft Graph MCP
 
@@ -308,15 +312,15 @@ This project benefits from these MCP servers:
 
 ```typescript
 export const LABELS = {
-  customer: 'Kund',
-  assignment: 'Uppdrag',
-  case: 'Ärende',
-  project: 'Projekt',
-  journal: 'Journal',
-  agreement: 'Avtal',
-  invoice: 'Faktura',
-  timebank: 'Timbank',
-  overtime: 'Övertid',
+  customer: "Kund",
+  assignment: "Uppdrag",
+  case: "Ärende",
+  project: "Projekt",
+  journal: "Journal",
+  agreement: "Avtal",
+  invoice: "Faktura",
+  timebank: "Timbank",
+  overtime: "Övertid",
   // ... see src/lib/constants.ts
 };
 ```
@@ -325,17 +329,17 @@ export const LABELS = {
 
 ```typescript
 // Customer status
-type CustomerStatus = 'active' | 'prospekt' | 'vilande';
+type CustomerStatus = "active" | "prospekt" | "vilande";
 
 // Assignment status
-type AssignmentStatus = 'active' | 'paused' | 'closed';
+type AssignmentStatus = "active" | "paused" | "closed";
 
 // Task status
-type TaskStatus = 'pending' | 'in_progress' | 'done';
+type TaskStatus = "pending" | "in_progress" | "done";
 ```
 
 ### Priority Values
 
 ```typescript
-type Priority = 'low' | 'medium' | 'high';
+type Priority = "low" | "medium" | "high";
 ```

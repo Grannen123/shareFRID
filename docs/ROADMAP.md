@@ -20,6 +20,7 @@
 ## Fas 1: Foundation (~1 vecka)
 
 ### Mål
+
 Grundläggande projektstruktur och infrastruktur.
 
 ### Uppgifter
@@ -53,6 +54,7 @@ Grundläggande projektstruktur och infrastruktur.
   - [ ] Färgschema enligt spec
 
 ### Definition of Done
+
 - [ ] Kan logga in med Microsoft-konto
 - [ ] Kan läsa en fil från SharePoint
 - [ ] Sidebar navigation fungerar
@@ -63,6 +65,7 @@ Grundläggande projektstruktur och infrastruktur.
 ## Fas 2: Kärn-UI (~2 veckor)
 
 ### Mål
+
 Fungerande CRUD för kunder och uppdrag.
 
 ### Uppgifter
@@ -112,6 +115,7 @@ Fungerande CRUD för kunder och uppdrag.
   - [ ] Koppling till kund och avtal
 
 ### Definition of Done
+
 - [ ] Kan lista, visa, skapa och redigera kunder
 - [ ] Kan lista, visa, skapa uppdrag
 - [ ] Kan lägga till journalposter med tid
@@ -122,6 +126,7 @@ Fungerande CRUD för kunder och uppdrag.
 ## Fas 3: Fakturering (~1 vecka)
 
 ### Mål
+
 Komplett faktureringsflöde med Fortnox-export.
 
 ### Uppgifter
@@ -153,6 +158,7 @@ Komplett faktureringsflöde med Fortnox-export.
   - [ ] Förnyelse-påminnelse
 
 ### Definition of Done
+
 - [ ] Timbank-split fungerar korrekt
 - [ ] Kan se förfakturerbart belopp
 - [ ] Kan exportera till Fortnox-format
@@ -163,6 +169,7 @@ Komplett faktureringsflöde med Fortnox-export.
 ## Fas 4: AI & Polish (~1 vecka)
 
 ### Mål
+
 AI-integration och UX-förbättringar.
 
 ### Uppgifter
@@ -198,6 +205,7 @@ AI-integration och UX-förbättringar.
   - [ ] Deadline-varningar
 
 ### Definition of Done
+
 - [ ] Kan ställa frågor till AI om ärenden
 - [ ] Kan diktera journalposter
 - [ ] Dashboard visar relevant info
@@ -250,26 +258,26 @@ AI-integration och UX-förbättringar.
 
 ## Milstolpar
 
-| Milstolpe | Beskrivning | Mål |
-|-----------|-------------|-----|
-| **M1: Login** | Kan logga in och se SharePoint-filer | Fas 1 klar |
-| **M2: Kunder** | Fullständig kundhantering | Fas 2, vecka 1 |
-| **M3: Uppdrag** | Fullständig uppdragshantering | Fas 2, vecka 2 |
-| **M4: Fakturering** | Kan exportera till Fortnox | Fas 3 klar |
-| **M5: AI** | AI-chatt fungerar | Fas 4 klar |
-| **M6: Production** | Redo för daglig användning | Alla faser |
+| Milstolpe           | Beskrivning                          | Mål            |
+| ------------------- | ------------------------------------ | -------------- |
+| **M1: Login**       | Kan logga in och se SharePoint-filer | Fas 1 klar     |
+| **M2: Kunder**      | Fullständig kundhantering            | Fas 2, vecka 1 |
+| **M3: Uppdrag**     | Fullständig uppdragshantering        | Fas 2, vecka 2 |
+| **M4: Fakturering** | Kan exportera till Fortnox           | Fas 3 klar     |
+| **M5: AI**          | AI-chatt fungerar                    | Fas 4 klar     |
+| **M6: Production**  | Redo för daglig användning           | Alla faser     |
 
 ---
 
 ## Risker och mitigation
 
-| Risk | Sannolikhet | Påverkan | Mitigation |
-|------|-------------|----------|------------|
-| Graph API komplexitet | Medium | Hög | Börja med enkel PoC |
-| Timbank-logik buggar | Hög | Hög | Omfattande tester |
-| MSAL-konfiguration | Medium | Medium | Följ MS dokumentation noga |
-| Performance med många filer | Låg | Medium | Caching, lazy loading |
-| AI-kostnader | Medium | Låg | Gemini för bulk, övervakning |
+| Risk                        | Sannolikhet | Påverkan | Mitigation                   |
+| --------------------------- | ----------- | -------- | ---------------------------- |
+| Graph API komplexitet       | Medium      | Hög      | Börja med enkel PoC          |
+| Timbank-logik buggar        | Hög         | Hög      | Omfattande tester            |
+| MSAL-konfiguration          | Medium      | Medium   | Följ MS dokumentation noga   |
+| Performance med många filer | Låg         | Medium   | Caching, lazy loading        |
+| AI-kostnader                | Medium      | Låg      | Gemini för bulk, övervakning |
 
 ---
 

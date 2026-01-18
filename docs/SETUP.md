@@ -37,10 +37,10 @@ npm install
 
 ### Notera följande värden
 
-| Värde | Var du hittar det |
-|-------|-------------------|
+| Värde     | Var du hittar det                  |
+| --------- | ---------------------------------- |
 | Client ID | Overview → Application (client) ID |
-| Tenant ID | Overview → Directory (tenant) ID |
+| Tenant ID | Overview → Directory (tenant) ID   |
 
 ### Konfigurera API Permissions
 
@@ -96,10 +96,11 @@ Kör detta i webbläsarens konsol när du är på SharePoint-siten:
 // Gå till: https://yourtenant.sharepoint.com/sites/Grannfrid
 // Öppna DevTools (F12) → Console
 // Kör:
-_spPageContextInfo.siteId
+_spPageContextInfo.siteId;
 ```
 
 Eller använd Graph Explorer:
+
 1. Gå till [Graph Explorer](https://developer.microsoft.com/en-us/graph/graph-explorer)
 2. Logga in
 3. Kör: `GET https://graph.microsoft.com/v1.0/sites/root:/sites/Grannfrid`
@@ -139,6 +140,7 @@ app_version: 1.0.0
 ---
 
 ## Inställningar
+
 - Faktureringsdag: Sista vardagen varje månad
 - Standardprioritet: medium
 ```
@@ -249,6 +251,7 @@ echo "npx lint-staged" > .husky/pre-commit
 ### "AADSTS50011: The reply URL specified in the request does not match"
 
 Lägg till rätt redirect URI i Azure AD:
+
 1. Azure Portal → App registrations → Grannfrid
 2. Authentication → Add platform → Single-page application
 3. Lägg till `http://localhost:5173`

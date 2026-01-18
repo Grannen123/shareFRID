@@ -31,13 +31,13 @@ Se [docs/SETUP.md](docs/SETUP.md) för installationsinstruktioner.
 
 ## Dokumentation
 
-| Dokument | Beskrivning |
-|----------|-------------|
+| Dokument                                      | Beskrivning               |
+| --------------------------------------------- | ------------------------- |
 | [SPEC-SHAREPOINT.md](docs/SPEC-SHAREPOINT.md) | Fullständig specifikation |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Teknisk arkitektur |
-| [ROADMAP.md](docs/ROADMAP.md) | Utvecklingsplan |
-| [SETUP.md](docs/SETUP.md) | Installationsguide |
-| [CLAUDE.md](CLAUDE.md) | AI-instruktioner |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)       | Teknisk arkitektur        |
+| [ROADMAP.md](docs/ROADMAP.md)                 | Utvecklingsplan           |
+| [SETUP.md](docs/SETUP.md)                     | Installationsguide        |
+| [CLAUDE.md](CLAUDE.md)                        | AI-instruktioner          |
 
 ## Tech Stack
 

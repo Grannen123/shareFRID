@@ -136,6 +136,7 @@ Context7 ger Claude tillgång till aktuell dokumentation utan att behöva web-s�
 #### Användning
 
 Särskilt användbart för:
+
 - Timbank-split beräkningar
 - Faktureringsflöden
 - Datamodellering
@@ -156,19 +157,19 @@ Om du vill ha direkt Fortnox-integration i Claude, behöver du antingen:
 
 ```typescript
 // fortnox-mcp/index.ts
-import { Server } from '@modelcontextprotocol/sdk';
+import { Server } from "@modelcontextprotocol/sdk";
 
 const server = new Server({
-  name: 'fortnox',
-  version: '1.0.0',
+  name: "fortnox",
+  version: "1.0.0",
 });
 
 server.addTool({
-  name: 'create_invoice',
-  description: 'Create invoice in Fortnox',
+  name: "create_invoice",
+  description: "Create invoice in Fortnox",
   parameters: {
-    customerNumber: { type: 'string' },
-    rows: { type: 'array' },
+    customerNumber: { type: "string" },
+    rows: { type: "array" },
   },
   handler: async ({ customerNumber, rows }) => {
     // Fortnox API call
@@ -216,11 +217,11 @@ Diktering hanteras bäst i frontend (browser API eller Whisper via backend), int
 
 MCP har samma behörigheter som app registration. Begränsa till vad som behövs:
 
-| Permission | Behövs för |
-|------------|------------|
+| Permission            | Behövs för       |
+| --------------------- | ---------------- |
 | `Files.ReadWrite.All` | SharePoint-filer |
-| `Sites.ReadWrite.All` | Skapa mappar |
-| `Mail.ReadWrite` | Outlook (fas 5) |
+| `Sites.ReadWrite.All` | Skapa mappar     |
+| `Mail.ReadWrite`      | Outlook (fas 5)  |
 | `Calendars.ReadWrite` | Kalender (fas 5) |
 
 ### Audit

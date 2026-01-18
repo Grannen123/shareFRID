@@ -144,7 +144,7 @@
 ```typescript
 // src/lib/graph-client.ts
 
-import { Client } from '@microsoft/microsoft-graph-client';
+import { Client } from "@microsoft/microsoft-graph-client";
 
 class GraphClient {
   private client: Client;
@@ -196,7 +196,7 @@ class GraphClient {
 ```typescript
 // src/lib/markdown.ts
 
-import matter from 'gray-matter';
+import matter from "gray-matter";
 
 interface ParsedMarkdown<T> {
   data: T;
@@ -222,13 +222,13 @@ function extractSections(content: string): Record<string, string> {
   const regex = /^## (.+)$/gm;
   let match;
   let lastIndex = 0;
-  let lastHeader = '';
+  let lastHeader = "";
 
   while ((match = regex.exec(content)) !== null) {
     if (lastHeader) {
       sections[lastHeader] = content.slice(lastIndex, match.index).trim();
     }
-    lastHeader = match[1].toLowerCase().replace(/\s+/g, '_');
+    lastHeader = match[1].toLowerCase().replace(/\s+/g, "_");
     lastIndex = match.index + match[0].length;
   }
 
@@ -241,11 +241,11 @@ function extractSections(content: string): Record<string, string> {
 
 export function stringifyMarkdown<T>(
   data: T,
-  sections: Record<string, string>
+  sections: Record<string, string>,
 ): string {
   const content = Object.entries(sections)
     .map(([header, body]) => `## ${formatHeader(header)}\n${body}`)
-    .join('\n\n');
+    .join("\n\n");
 
   return matter.stringify(content, data);
 }
@@ -259,7 +259,7 @@ export function stringifyMarkdown<T>(
 interface TimebankSplit {
   entries: {
     hours: number;
-    type: 'timebank' | 'overtime';
+    type: "timebank" | "overtime";
     rate: number;
   }[];
   newBalance: number;
@@ -269,14 +269,12 @@ export function calculateTimebankSplit(
   hoursToLog: number,
   currentBalance: number,
   timepris: number,
-  overtidspris: number
+  overtidspris: number,
 ): TimebankSplit {
   if (hoursToLog <= currentBalance) {
     // Allt ryms i timbanken
     return {
-      entries: [
-        { hours: hoursToLog, type: 'timebank', rate: 0 }
-      ],
+      entries: [{ hours: hoursToLog, type: "timebank", rate: 0 }],
       newBalance: currentBalance - hoursToLog,
     };
   }
@@ -287,8 +285,8 @@ export function calculateTimebankSplit(
 
   return {
     entries: [
-      { hours: timbankHours, type: 'timebank', rate: 0 },
-      { hours: overtimeHours, type: 'overtime', rate: overtidspris },
+      { hours: timbankHours, type: "timebank", rate: 0 },
+      { hours: overtimeHours, type: "overtime", rate: overtidspris },
     ],
     newBalance: 0,
   };
@@ -296,11 +294,11 @@ export function calculateTimebankSplit(
 
 export function calculateBillableAmount(
   entries: JournalEntry[],
-  agreement: Agreement
+  agreement: Agreement,
 ): number {
   return entries.reduce((sum, entry) => {
-    if (entry.billingType === 'timebank') return sum;
-    if (entry.billingType === 'overtime') {
+    if (entry.billingType === "timebank") return sum;
+    if (entry.billingType === "overtime") {
       return sum + entry.hours * agreement.overtidspris;
     }
     if (entry.isExtraBillable) {
@@ -322,15 +320,15 @@ export function calculateBillableAmount(
 
 export const queryKeys = {
   customers: {
-    all: ['customers'] as const,
-    list: (workspace?: string) => ['customers', 'list', workspace] as const,
-    detail: (id: string) => ['customers', 'detail', id] as const,
+    all: ["customers"] as const,
+    list: (workspace?: string) => ["customers", "list", workspace] as const,
+    detail: (id: string) => ["customers", "detail", id] as const,
   },
   assignments: {
-    all: ['assignments'] as const,
+    all: ["assignments"] as const,
     byCustomer: (customerId: string) =>
-      ['assignments', 'customer', customerId] as const,
-    detail: (id: string) => ['assignments', 'detail', id] as const,
+      ["assignments", "customer", customerId] as const,
+    detail: (id: string) => ["assignments", "detail", id] as const,
   },
   // ...
 };
@@ -347,7 +345,7 @@ export function useCustomers(workspace?: string) {
   return useQuery({
     queryKey: queryKeys.customers.list(workspace),
     queryFn: async () => {
-      const folders = await graph.listFolder('/Grannfrid/Kunder - Göteborg');
+      const folders = await graph.listFolder("/Grannfrid/Kunder - Göteborg");
       // ... parse each kund.md
     },
     staleTime: 5 * 60 * 1000, // 5 min
@@ -436,17 +434,17 @@ export const msalConfig: Configuration = {
     redirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: 'localStorage',
+    cacheLocation: "localStorage",
     storeAuthStateInCookie: false,
   },
 };
 
 export const graphScopes = [
-  'User.Read',
-  'Files.ReadWrite.All',
-  'Sites.ReadWrite.All',
-  'Mail.ReadWrite',
-  'Calendars.ReadWrite',
+  "User.Read",
+  "Files.ReadWrite.All",
+  "Sites.ReadWrite.All",
+  "Mail.ReadWrite",
+  "Calendars.ReadWrite",
 ];
 ```
 
@@ -463,22 +461,22 @@ export class GraphError extends Error {
   constructor(
     message: string,
     public statusCode: number,
-    public code: string
+    public code: string,
   ) {
     super(message);
-    this.name = 'GraphError';
+    this.name = "GraphError";
   }
 }
 
 export function handleGraphError(error: unknown): never {
   if (error instanceof GraphError) {
     switch (error.code) {
-      case 'itemNotFound':
-        throw new NotFoundError('Filen hittades inte');
-      case 'accessDenied':
-        throw new ForbiddenError('Åtkomst nekad');
-      case 'invalidRequest':
-        throw new ValidationError('Ogiltig begäran');
+      case "itemNotFound":
+        throw new NotFoundError("Filen hittades inte");
+      case "accessDenied":
+        throw new ForbiddenError("Åtkomst nekad");
+      case "invalidRequest":
+        throw new ValidationError("Ogiltig begäran");
       default:
         throw error;
     }
@@ -515,13 +513,13 @@ export function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
 ### Caching Strategy
 
-| Data | Cache Time | Strategy |
-|------|------------|----------|
-| Kundlista | 5 min | staleTime, background refresh |
-| Kunddetalj | 2 min | Invalidate on mutation |
-| Uppdragslista | 2 min | staleTime |
-| Journal | 1 min | Invalidate on add |
-| Kunskapsbank | 30 min | Sällan uppdaterad |
+| Data          | Cache Time | Strategy                      |
+| ------------- | ---------- | ----------------------------- |
+| Kundlista     | 5 min      | staleTime, background refresh |
+| Kunddetalj    | 2 min      | Invalidate on mutation        |
+| Uppdragslista | 2 min      | staleTime                     |
+| Journal       | 1 min      | Invalidate on add             |
+| Kunskapsbank  | 30 min     | Sällan uppdaterad             |
 
 ### Lazy Loading
 
@@ -557,23 +555,23 @@ const toggleTask = useMutation({
   },
   onMutate: async (taskId) => {
     // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: ['tasks'] });
+    await queryClient.cancelQueries({ queryKey: ["tasks"] });
 
     // Snapshot previous value
-    const previous = queryClient.getQueryData(['tasks']);
+    const previous = queryClient.getQueryData(["tasks"]);
 
     // Optimistically update
-    queryClient.setQueryData(['tasks'], (old) =>
+    queryClient.setQueryData(["tasks"], (old) =>
       old.map((task) =>
-        task.id === taskId ? { ...task, status: 'done' } : task
-      )
+        task.id === taskId ? { ...task, status: "done" } : task,
+      ),
     );
 
     return { previous };
   },
   onError: (err, taskId, context) => {
     // Rollback on error
-    queryClient.setQueryData(['tasks'], context.previous);
+    queryClient.setQueryData(["tasks"], context.previous);
   },
 });
 ```
