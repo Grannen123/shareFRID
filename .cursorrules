@@ -1,0 +1,103 @@
+# Cursor Rules for Grannfrid
+
+## Project Context
+
+This is a Swedish CRM app for housing consultants. The app uses:
+- React 18 + TypeScript + Vite
+- SharePoint as backend (markdown files via Graph API)
+- Claude AI for intelligent features
+- Swedish UI, English code
+
+## Primary Documentation
+
+ALWAYS read these files before making changes:
+- `CLAUDE.md` - Development instructions
+- `docs/SPEC-SHAREPOINT.md` - Complete specification
+- `docs/ARCHITECTURE.md` - Technical patterns
+
+## Code Style
+
+### TypeScript
+- Use explicit types, never `any`
+- Prefer interfaces over types for objects
+- Use Zod for runtime validation
+
+### React
+- Functional components only
+- Use React Query for server state
+- Use Radix UI for accessible components
+
+### Naming
+- Components: PascalCase (`CustomerList.tsx`)
+- Hooks: camelCase with use prefix (`useCustomers.ts`)
+- Utils: camelCase (`parseMarkdown.ts`)
+- Constants: UPPER_SNAKE_CASE
+
+## Business Logic
+
+### Critical: Timbank Split
+When logging time that exceeds the time bank:
+```
+5h remaining + 8h logged =
+  5h (timebank, 0 kr) + 3h (overtime, rate × 3)
+```
+
+### Invoice Recipients
+Each assignment has a `fakturamottagare` (person). Group billing by recipient.
+
+### Entry Types
+- Samtal (call)
+- Mail (email)
+- Möte (meeting)
+- Platsbesök (site_visit)
+- Anteckning (note)
+
+## File Patterns
+
+### Customer file (kund.md)
+```yaml
+---
+fortnox_kundnummer: "10045"
+namn: Company Name
+typ: brf
+status: active
+---
+
+## Anteckningar
+Notes here...
+
+## Kontakter
+| Namn | Roll | E-post | Fakturamottagare |
+```
+
+### Assignment file (uppdrag.md)
+```yaml
+---
+nummer: C-001
+kund: Customer Name
+fakturamottagare: Person Name
+status: active
+---
+
+## Journal
+
+### 2026-01-18 | Samtal | Peter | 30 min
+Content here...
+```
+
+## Swedish Labels
+
+Always use Swedish in UI. Key terms:
+- Kund = Customer
+- Uppdrag = Assignment
+- Ärende = Case
+- Timbank = Time bank
+- Faktura = Invoice
+
+## Don'ts
+
+- Don't use `any` type
+- Don't skip Zod validation
+- Don't hardcode text (use constants)
+- Don't forget to update timbank after logging time
+- Don't create billing without checking fakturamottagare
