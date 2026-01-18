@@ -131,6 +131,14 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 │
 └── /System                      ⚙️ APP-DATA
     ├── config.md
+    ├── /index                   # Maskinläsbara index (JSON)
+    │   ├── customers.json
+    │   ├── cases.json
+    │   ├── agreements.json
+    │   └── billing_lines.json
+    ├── /ledger                  # Avtals-ledgers
+    │   └── /agreements
+    │       └── {agreement_id}.json
     └── /Fakturering
 
 /Grannfrid AB                    🔒 ENDAST ÄGARE
@@ -173,10 +181,30 @@ En CRM/produktivitetsapp för bostadskonsulter som hanterar störningsärenden, 
 
 ## 4. Datamodell (Markdown-filer)
 
-### 4.1 kund.md
+### 4.1 ID-struktur (VIKTIGT)
+
+Alla entiteter har stabila, unika ID:n för att säkerställa dataintegritet:
+
+| Entitet     | Format                     | Exempel                    |
+| ----------- | -------------------------- | -------------------------- |
+| Kund        | `cust_{slug}_{4char}`      | `cust_bjorkekärr_7x3k`     |
+| Avtal       | `agr_{kund}_{år}_{4char}`  | `agr_bjorkekärr_2024_9m2p` |
+| Ärende      | `C-{ÅÅ}-{NNN}`             | `C-26-047`                 |
+| Projekt     | `P-{ÅÅ}-{NNN}`             | `P-26-012`                 |
+| Kontakt     | `cont_{efternamn}_{4char}` | `cont_lindstrom_4n8j`      |
+| Journalpost | `jrn_{datum}_{6char}`      | `jrn_2026-01-18_abc123`    |
+| Fakturarad  | `bill_{period}_{6char}`    | `bill_2026-01_def456`      |
+| Konsult     | `user_{förnamn}`           | `user_peter`               |
+
+**Princip:** Namn kan ändras, ID:n är permanenta. Alla relationer använder ID, aldrig namnsträngar.
+
+---
+
+### 4.2 kund.md
 
 ```yaml
 ---
+customer_id: cust_bjorkekärr_7x3k
 fortnox_kundnummer: "10045"
 namn: HSB Brf Björkekärr
 org_nummer: 769612-3456
@@ -188,7 +216,7 @@ telefon: 031-123456
 antal_lagenheter: 48
 typ: brf
 status: active
-ansvarig: Peter
+ansvarig_id: user_peter
 workspace: goteborg
 skapad: 2024-03-15
 ---
@@ -199,11 +227,11 @@ skapad: 2024-03-15
 - Faktureras kvartalsvis
 
 ## Kontakter
-| Namn | Roll | E-post | Telefon | Fakturamottagare |
-|------|------|--------|---------|------------------|
-| Karin Lindström | Styrelseordf | karin@brfbjorkekärr.se | 070-1234567 | ✓ |
-| Erik Johansson | Ekonomi | erik@brfbjorkekärr.se | 070-2345678 | ✓ |
-| Maria Svensson | Viceordf | maria@brfbjorkekärr.se | 070-3456789 | |
+| contact_id | Namn | Roll | E-post | Telefon | Fakturamottagare |
+|------------|------|------|--------|---------|------------------|
+| cont_lindstrom_4n8j | Karin Lindström | Styrelseordf | karin@brfbjorkekärr.se | 070-1234567 | ✓ |
+| cont_johansson_8k2m | Erik Johansson | Ekonomi | erik@brfbjorkekärr.se | 070-2345678 | ✓ |
+| cont_svensson_2p7q | Maria Svensson | Viceordf | maria@brfbjorkekärr.se | 070-3456789 | |
 ```
 
 ### 4.2 Kundtyper
@@ -232,14 +260,14 @@ skapad: 2024-03-15
 
 ```yaml
 ---
+agreement_id: agr_bjorkekärr_2024_9m2p
+customer_id: cust_bjorkekärr_7x3k
 namn: Ramavtal 2024
 typ: timebank
 status: active
 timpris: 1400
 overtidspris: 1600
 timmar_inkluderade: 50
-timmar_anvanda: 37.5
-timmar_kvar: 12.5
 period: yearly
 giltig_fran: 2024-01-01
 giltig_till: 2024-12-31
@@ -251,6 +279,8 @@ fakturering: kvartalsvis
 - Övertid faktureras löpande månadsvis
 - Indexering enligt SCB fastighetsprisindex
 ```
+
+**OBS:** `timmar_anvanda` och `timmar_kvar` lagras INTE i avtal.md längre. Se 4.13 Agreement Ledger.
 
 ### 4.5 Avtalstyper
 
@@ -285,17 +315,17 @@ fakturering: kvartalsvis
 
 ```yaml
 ---
-nummer: C-047
-kund: HSB Brf Björkekärr
-avtal: Ramavtal 2024
-fakturamottagare: Karin Lindström
+case_id: C-26-047
+customer_id: cust_bjorkekärr_7x3k
+agreement_id: agr_bjorkekärr_2024_9m2p
+billing_contact_id: cont_lindstrom_4n8j
 typ: case
 kategori: disturbance
 status: active
 prioritet: high
 titel: Störning Ekvägen 15
 beskrivning: Musikstörning nattetid från lgh 1102
-ansvarig: Peter
+ansvarig_id: user_peter
 adress: Ekvägen 15, lgh 1102
 skapad: 2026-01-10
 deadline: 2026-01-31
@@ -364,10 +394,14 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 
 ---
 
-### 4.10 Journalpost-format
+### 4.10 Journalpost-format (narrativ)
+
+Journalposter i markdown är **narrativa** - mänskligt läsbara anteckningar.
 
 ```markdown
 ### {DATUM} | {TYP} | {KONSULT} | {TID} | {FLAGGOR}
+
+<!-- entry_id: jrn_2026-01-18_abc123 -->
 
 {ANTECKNINGSTEXT}
 
@@ -376,15 +410,16 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 
 **Fält:**
 
-| Fält            | Format                                 | Exempel            |
-| --------------- | -------------------------------------- | ------------------ |
-| Datum           | YYYY-MM-DD                             | 2026-01-18         |
-| Typ             | samtal/mail/möte/platsbesök/anteckning | Samtal             |
-| Konsult         | Namn                                   | Peter              |
-| Tid             | X min / X h / X.X h                    | 30 min             |
-| Flaggor         | extra, timbank, övertid                | extra              |
-| Anteckningstext | Fritext                                | Pratat med...      |
-| Fakturatext     | Efter `> Fakturatext:`                 | Uppföljningssamtal |
+| Fält            | Format                                 | Exempel               |
+| --------------- | -------------------------------------- | --------------------- |
+| entry_id        | HTML-kommentar                         | jrn_2026-01-18_abc123 |
+| Datum           | YYYY-MM-DD                             | 2026-01-18            |
+| Typ             | samtal/mail/möte/platsbesök/anteckning | Samtal                |
+| Konsult         | Namn (läsbart, ID i index)             | Peter                 |
+| Tid             | X min / X h / X.X h                    | 30 min                |
+| Flaggor         | extra, timbank, övertid                | extra                 |
+| Anteckningstext | Fritext                                | Pratat med...         |
+| Fakturatext     | Efter `> Fakturatext:`                 | Uppföljningssamtal    |
 
 **Entry types:**
 
@@ -395,6 +430,66 @@ Inkommande samtal från styrelseordförande Karin som beskriver ärendet. Tre kl
 | Möte       | meeting    |
 | Platsbesök | site_visit |
 | Anteckning | note       |
+
+---
+
+### 4.10b BillingLine (maskindata)
+
+Fakturarader lagras **separat** i `/System/index/billing_lines.json` för snabb aggregering:
+
+```json
+{
+  "billing_line_id": "bill_2026-01_def456",
+  "entry_id": "jrn_2026-01-18_abc123",
+  "case_id": "C-26-047",
+  "customer_id": "cust_bjorkekärr_7x3k",
+  "agreement_id": "agr_bjorkekärr_2024_9m2p",
+  "billing_contact_id": "cont_lindstrom_4n8j",
+  "consultant_id": "user_peter",
+  "date": "2026-01-18",
+  "minutes": 30,
+  "type": "timebank",
+  "rate": 0,
+  "amount": 0,
+  "invoice_text": "Samtal med hyresgäst",
+  "period": "2026-01",
+  "status": "pending",
+  "locked": false
+}
+```
+
+**Timbank-split:** En journalpost kan generera **två** BillingLines:
+
+```json
+[
+  {
+    "billing_line_id": "bill_2026-01_aaa111",
+    "entry_id": "jrn_2026-01-20_xyz789",
+    "minutes": 150,
+    "type": "timebank",
+    "rate": 0,
+    "amount": 0
+  },
+  {
+    "billing_line_id": "bill_2026-01_bbb222",
+    "entry_id": "jrn_2026-01-20_xyz789",
+    "minutes": 90,
+    "type": "overtime",
+    "rate": 1600,
+    "amount": 2400
+  }
+]
+```
+
+**BillingLine status:**
+
+| Status     | Beskrivning           |
+| ---------- | --------------------- |
+| `pending`  | Väntar på fakturering |
+| `review`   | Under granskning      |
+| `approved` | Godkänd för faktura   |
+| `invoiced` | Fakturerad            |
+| `locked`   | Låst, kan ej ändras   |
 
 ---
 
@@ -450,6 +545,144 @@ kopplad_uppdrag: null
 Idé: Standardisera varningsbrev-mallen med tydligare juridisk text.
 Prata med advokaten om formuleringar.
 ```
+
+---
+
+### 4.13 Agreement Ledger (timbankssaldo)
+
+Varje timbanksavtal har en ledger för spårbar saldoberäkning:
+
+**/System/ledger/agreements/agr_bjorkekärr_2024_9m2p.json**
+
+```json
+{
+  "agreement_id": "agr_bjorkekärr_2024_9m2p",
+  "customer_id": "cust_bjorkekärr_7x3k",
+  "type": "timebank",
+  "included_hours": 50,
+  "period_start": "2024-01-01",
+  "period_end": "2024-12-31",
+  "entries": [
+    {
+      "date": "2024-01-15",
+      "entry_id": "jrn_2024-01-15_aaa111",
+      "type": "usage",
+      "minutes": 60,
+      "balance_after": 2940
+    },
+    {
+      "date": "2024-02-03",
+      "entry_id": "jrn_2024-02-03_bbb222",
+      "type": "usage",
+      "minutes": 90,
+      "balance_after": 2850
+    },
+    {
+      "date": "2024-06-01",
+      "type": "adjustment",
+      "minutes": 300,
+      "reason": "Utökning av timbank",
+      "balance_after": 3150
+    }
+  ],
+  "computed": {
+    "total_used_minutes": 2250,
+    "remaining_minutes": 750,
+    "overtime_minutes": 0,
+    "last_updated": "2024-12-15T14:30:00Z"
+  }
+}
+```
+
+**Entry types i ledger:**
+
+| Type         | Beskrivning               |
+| ------------ | ------------------------- |
+| `usage`      | Normal tidsförbrukning    |
+| `overtime`   | Övertid (utöver timbank)  |
+| `adjustment` | Manuell justering         |
+| `refund`     | Återföring/kreditering    |
+| `rollover`   | Överföring till ny period |
+
+**Varför ledger?**
+
+- Reproducerbart saldo (kan räknas om)
+- Granskningsbar historik
+- Hanterar retroaktiva ändringar
+- Tydlig separation: tidpunkt vs effekt på saldo
+
+---
+
+### 4.14 System Index (JSON)
+
+Index-filer för snabba listor och aggregeringar:
+
+**/System/index/customers.json**
+
+```json
+{
+  "last_updated": "2026-01-18T10:00:00Z",
+  "customers": [
+    {
+      "customer_id": "cust_bjorkekärr_7x3k",
+      "fortnox_id": "10045",
+      "name": "HSB Brf Björkekärr",
+      "workspace": "goteborg",
+      "status": "active",
+      "active_cases": 2,
+      "active_agreement_id": "agr_bjorkekärr_2024_9m2p"
+    }
+  ]
+}
+```
+
+**/System/index/cases.json**
+
+```json
+{
+  "last_updated": "2026-01-18T10:00:00Z",
+  "cases": [
+    {
+      "case_id": "C-26-047",
+      "customer_id": "cust_bjorkekärr_7x3k",
+      "title": "Störning Ekvägen 15",
+      "status": "active",
+      "priority": "high",
+      "assignee_id": "user_peter",
+      "created": "2026-01-10",
+      "deadline": "2026-01-31",
+      "total_minutes": 125
+    }
+  ]
+}
+```
+
+**/System/index/agreements.json**
+
+```json
+{
+  "last_updated": "2026-01-18T10:00:00Z",
+  "agreements": [
+    {
+      "agreement_id": "agr_bjorkekärr_2024_9m2p",
+      "customer_id": "cust_bjorkekärr_7x3k",
+      "type": "timebank",
+      "status": "active",
+      "included_minutes": 3000,
+      "remaining_minutes": 750,
+      "valid_from": "2024-01-01",
+      "valid_to": "2024-12-31"
+    }
+  ]
+}
+```
+
+**Princip: Markdown = källa, Index = cache**
+
+- Index uppdateras vid varje skrivoperation
+- Index kan återskapas från markdown vid behov
+- Listor/rapporter läser från index (snabbt)
+- Detaljvyer läser från markdown (komplett)
 
 ---
 
@@ -809,6 +1042,75 @@ AI: Enligt våra rutiner (störningsärende-guide.md):
     specifik tidsgräns, men...
 ```
 
+### 7.5 AI Guardrails (tillförlitlighet)
+
+#### Draft → Review → Approve
+
+AI-genererat innehåll som påverkar data kräver godkännande:
+
+```
+┌────────────────────────────────────────────────┐
+│ 🤖 AI-genererat innehåll                       │
+│                                                │
+│ Jag föreslår denna journalpost:                │
+│                                                │
+│ ### 2026-01-20 | Samtal | Jonas | 30 min       │
+│ Pratat med hyresgäst Magnus...                 │
+│                                                │
+│ ┌──────────────────────────────────────────┐   │
+│ │ ✅ Godkänn    │ ✏️ Redigera  │ ❌ Avbryt │   │
+│ └──────────────────────────────────────────┘   │
+│                                                │
+│ Källa: Diktering 2026-01-20 14:32              │
+└────────────────────────────────────────────────┘
+```
+
+#### Vad kräver godkännande?
+
+| Åtgärd            | Kräver godkännande | Anledning            |
+| ----------------- | ------------------ | -------------------- |
+| Skapa journalpost | ✅ Ja              | Påverkar fakturering |
+| Skapa ärende      | ✅ Ja              | Skapar ny entitet    |
+| Ändra status      | ✅ Ja              | Affärspåverkan       |
+| Söka/sammanfatta  | ❌ Nej             | Endast läsning       |
+| Svara på frågor   | ❌ Nej             | Ingen datapåverkan   |
+| Generera utkast   | ⚠️ Vid sparande    | Brev, rapporter      |
+
+#### Källhänvisning
+
+AI ska alltid visa källa för påståenden:
+
+```
+AI: Timbanken för Björkekärr har 12.5 timmar kvar.
+    📄 Källa: avtal/Ramavtal 2024.md
+
+AI: Störningar nattetid räknas som väsentlig störning.
+    📄 Källa: Kunskapsbank/Juridik/hyreslagen-25.md
+```
+
+#### Kontextisolering
+
+AI har endast åtkomst till data för **aktuellt ärende/kund** i varje konversation:
+
+- ✅ "Sammanfatta C-047" → Läser C-047 och relaterad kund
+- ❌ "Sammanfatta alla ärenden för alla kunder" → Avvisar eller kräver explicit bekräftelse
+
+#### Loggning
+
+Alla AI-åtgärder loggas i `/System/ai_log.json`:
+
+```json
+{
+  "timestamp": "2026-01-20T14:32:00Z",
+  "user_id": "user_jonas",
+  "action": "create_journal_entry",
+  "source": "dictation",
+  "status": "approved",
+  "case_id": "C-26-047",
+  "approved_by": "user_jonas"
+}
+```
+
 ---
 
 ## 8. Notifikationer och påminnelser
@@ -991,18 +1293,54 @@ Baseras på Radix UI med custom styling:
 | Admin   | /Grannfrid + System           |
 | Ägare   | Allt + /Grannfrid AB          |
 
-### 10.3 GDPR
+### 10.3 GDPR och datahantering
 
-- Journalposter och uppdrag kan raderas permanent
-- Radering tar bort relaterade filer
-- Inga "soft deletes" för persondata
-- SharePoint versionshistorik för spårbarhet
+#### Raderingsnivåer
+
+| Nivå                   | Beskrivning            | Åtgärd                         |
+| ---------------------- | ---------------------- | ------------------------------ |
+| **Operational Delete** | Borttagen ur app/index | Fil flyttas till papperskorg   |
+| **Recovery Window**    | Admin kan återställa   | 93 dagar i M365 papperskorg    |
+| **Hard Delete**        | Permanent radering     | Manuell tömning av papperskorg |
+
+#### Så fungerar radering
+
+1. **Användare raderar i appen:**
+   - Fil tas bort från index
+   - Fil flyttas till SharePoint papperskorg
+   - Ej synlig i app, men kan återställas av admin
+
+2. **Efter 93 dagar:**
+   - Microsoft raderar permanent automatiskt
+   - Ej möjligt att återställa
+
+3. **GDPR-begäran (right to erasure):**
+   - Admin tömmer papperskorg manuellt
+   - Dokumentera radering i ärendelogg
+
+#### Versionshistorik
+
+SharePoint sparar versioner automatiskt. Detta är **inte** en soft delete utan en ändringslogg:
+
+- Användare ser endast senaste version
+- Admin kan granska ändringshistorik
+- Versioner raderas tillsammans med filen
+
+#### Persondata i index
+
+Index-filer innehåller referens-ID:n, inte persondata:
+
+- `billing_contact_id: cont_lindstrom_4n8j` (OK)
+- ~~`billing_contact: Karin Lindström`~~ (EJ OK)
+
+Vid radering av kontakt: uppdatera ID-referensen till `null` eller ersättnings-ID.
 
 ### 10.4 Backup
 
 - SharePoint versionshistorik (automatisk)
 - Papperskorg 93 dagar
 - Microsoft 365 backup ingår
+- **Ingen egen backup krävs** - Microsoft ansvarar
 
 ---
 
