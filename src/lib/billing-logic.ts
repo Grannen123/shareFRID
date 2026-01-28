@@ -1,9 +1,29 @@
-import type { Agreement, BillingType, TimebankCurrentStatus } from '@/types/database';
+import type {
+  Agreement,
+  BillingType,
+  TimebankCurrentStatus,
+} from "@/types/database";
+
+/**
+ * @fileoverview Affärslogik för fakturering och timbank-beräkningar.
+ *
+ * Avtalstyper som stöds:
+ * - **hourly**: Alla timmar faktureras direkt
+ * - **timebank**: X timmar ingår per period, sedan övertid
+ * - **fixed**: Fast belopp, timmar loggas för statistik
+ *
+ * Vid timbank-split (när journalpost överskrider banken):
+ * 1. Resterande timbank-timmar → billing_type='timebank'
+ * 2. Övertidstimmar → billing_type='overtime'
+ */
 
 // ============================================================================
 // TIMBANK STATUS
 // ============================================================================
 
+/**
+ * Status för en kunds timbank under aktuell period.
+ */
 export interface TimebankStatus {
   includedHours: number;
   hoursUsed: number;
@@ -13,14 +33,21 @@ export interface TimebankStatus {
   isOvertime: boolean;
 }
 
+/**
+ * Beräknar timbank-status baserat på avtal och använda timmar.
+ * @param agreement - Kundens aktiva avtal
+ * @param hoursThisPeriod - Totalt använda timmar denna period
+ * @returns TimebankStatus med återstående timmar, övertid, procent etc.
+ */
 export function calculateTimebankStatus(
   agreement: Agreement,
-  hoursThisPeriod: number
+  hoursThisPeriod: number,
 ): TimebankStatus {
   const includedHours = agreement.included_hours || 0;
   const hoursRemaining = Math.max(0, includedHours - hoursThisPeriod);
   const overtimeHours = Math.max(0, hoursThisPeriod - includedHours);
-  const percentUsed = includedHours > 0 ? (hoursThisPeriod / includedHours) * 100 : 0;
+  const percentUsed =
+    includedHours > 0 ? (hoursThisPeriod / includedHours) * 100 : 0;
 
   return {
     includedHours,
@@ -32,10 +59,18 @@ export function calculateTimebankStatus(
   };
 }
 
-export function timebankStatusFromView(view: TimebankCurrentStatus): TimebankStatus {
-  const includedHours = view.included_hours;
-  const hoursUsed = view.hours_used_this_period;
-  const hoursRemaining = Math.max(0, view.hours_remaining);
+/**
+ * Konverterar timbank-vy från Supabase till TimebankStatus.
+ * Hanterar null-värden från databasen med säkra defaults.
+ * @param view - Data från timebank_current_status-vyn
+ */
+export function timebankStatusFromView(
+  view: TimebankCurrentStatus,
+): TimebankStatus {
+  // Add null-checks for all numeric fields from the view
+  const includedHours = view.included_hours ?? 0;
+  const hoursUsed = view.hours_used_this_period ?? 0;
+  const hoursRemaining = Math.max(0, view.hours_remaining ?? 0);
   const overtimeHours = Math.max(0, hoursUsed - includedHours);
   const percentUsed = includedHours > 0 ? (hoursUsed / includedHours) * 100 : 0;
 
@@ -73,77 +108,88 @@ export function calculateBillingWithSplit(
   agreement: Agreement,
   timebankStatus: TimebankStatus | null,
   newHours: number,
-  isExtraBillable: boolean = false
+  isExtraBillable: boolean = false,
 ): BillingResult {
   // Löpande timpris - enkel beräkning
-  if (agreement.type === 'hourly') {
+  if (agreement.type === "hourly") {
     const amount = newHours * agreement.hourly_rate;
     return {
-      entries: [{
-        hours: newHours,
-        billingType: 'hourly',
-        hourlyRate: agreement.hourly_rate,
-        amount,
-      }],
+      entries: [
+        {
+          hours: newHours,
+          billingType: "hourly",
+          hourlyRate: agreement.hourly_rate,
+          amount,
+        },
+      ],
       totalAmount: amount,
     };
   }
 
   // Fastpris - timmar loggas för statistik
-  if (agreement.type === 'fixed') {
+  if (agreement.type === "fixed") {
     if (isExtraBillable) {
       // Explicit extraarbete debiteras som hourly
       const amount = newHours * agreement.hourly_rate;
       return {
-        entries: [{
-          hours: newHours,
-          billingType: 'hourly',
-          hourlyRate: agreement.hourly_rate,
-          amount,
-        }],
+        entries: [
+          {
+            hours: newHours,
+            billingType: "hourly",
+            hourlyRate: agreement.hourly_rate,
+            amount,
+          },
+        ],
         totalAmount: amount,
       };
     }
     return {
-      entries: [{
-        hours: newHours,
-        billingType: 'fixed',
-        hourlyRate: 0,
-        amount: 0,
-      }],
+      entries: [
+        {
+          hours: newHours,
+          billingType: "fixed",
+          hourlyRate: 0,
+          amount: 0,
+        },
+      ],
       totalAmount: 0,
     };
   }
 
   // Timbank - komplex logik med split
-  if (agreement.type === 'timebank') {
+  if (agreement.type === "timebank") {
     // Explicit extraarbete = alltid overtime
     if (isExtraBillable) {
       const rate = agreement.overtime_rate || agreement.hourly_rate;
       const amount = newHours * rate;
       return {
-        entries: [{
-          hours: newHours,
-          billingType: 'overtime',
-          hourlyRate: rate,
-          amount,
-        }],
+        entries: [
+          {
+            hours: newHours,
+            billingType: "overtime",
+            hourlyRate: rate,
+            amount,
+          },
+        ],
         totalAmount: amount,
       };
     }
 
-    const remaining = timebankStatus?.hoursRemaining ?? agreement.included_hours ?? 0;
+    const remaining =
+      timebankStatus?.hoursRemaining ?? agreement.included_hours ?? 0;
     const overtimeRate = agreement.overtime_rate || agreement.hourly_rate;
 
     // Allt ryms inom timbanken
     if (remaining >= newHours) {
       return {
-        entries: [{
-          hours: newHours,
-          billingType: 'timebank',
-          hourlyRate: 0,
-          amount: 0,
-        }],
+        entries: [
+          {
+            hours: newHours,
+            billingType: "timebank",
+            hourlyRate: 0,
+            amount: 0,
+          },
+        ],
         totalAmount: 0,
       };
     }
@@ -157,13 +203,13 @@ export function calculateBillingWithSplit(
         entries: [
           {
             hours: remaining,
-            billingType: 'timebank',
+            billingType: "timebank",
             hourlyRate: 0,
             amount: 0,
           },
           {
             hours: overtimeHours,
-            billingType: 'overtime',
+            billingType: "overtime",
             hourlyRate: overtimeRate,
             amount: overtimeAmount,
           },
@@ -175,24 +221,28 @@ export function calculateBillingWithSplit(
     // Allt är övertid
     const amount = newHours * overtimeRate;
     return {
-      entries: [{
-        hours: newHours,
-        billingType: 'overtime',
-        hourlyRate: overtimeRate,
-        amount,
-      }],
+      entries: [
+        {
+          hours: newHours,
+          billingType: "overtime",
+          hourlyRate: overtimeRate,
+          amount,
+        },
+      ],
       totalAmount: amount,
     };
   }
 
   // Fallback
   return {
-    entries: [{
-      hours: newHours,
-      billingType: 'internal',
-      hourlyRate: 0,
-      amount: 0,
-    }],
+    entries: [
+      {
+        hours: newHours,
+        billingType: "internal",
+        hourlyRate: 0,
+        amount: 0,
+      },
+    ],
     totalAmount: 0,
   };
 }
@@ -201,15 +251,29 @@ export function calculateBillingWithSplit(
 // HELPERS
 // ============================================================================
 
-export function getPeriodStartDate(period: 'monthly' | 'yearly'): Date {
+/**
+ * Returnerar startdatum för aktuell faktureringsperiod.
+ * @param period - 'monthly' för månadens första, 'yearly' för årets första
+ */
+export function getPeriodStartDate(period: "monthly" | "yearly"): Date {
   const now = new Date();
-  if (period === 'monthly') {
+  if (period === "monthly") {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }
   return new Date(now.getFullYear(), 0, 1);
 }
 
-export function isIndexationWarningNeeded(nextIndexation: string | null, daysThreshold: number = 7): boolean {
+/**
+ * Kontrollerar om en indexeringsvarning ska visas.
+ * Används för att påminna om kommande prisindexering på avtal.
+ * @param nextIndexation - Datum för nästa indexering (ISO-sträng)
+ * @param daysThreshold - Antal dagar innan varning visas (default: 7)
+ * @returns true om indexering är inom threshold dagar
+ */
+export function isIndexationWarningNeeded(
+  nextIndexation: string | null,
+  daysThreshold: number = 7,
+): boolean {
   if (!nextIndexation) return false;
   const indexDate = new Date(nextIndexation);
   const now = new Date();

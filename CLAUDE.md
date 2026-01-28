@@ -1,326 +1,156 @@
-# Grannfrid App - Claude Code Instructions
+# Grannfrid App
 
-## Projekt
-**Grannfrid 2.0** - CRM/produktivitetsapp för bostadskonsulter (Grannfrid AB)
-**Språk:** Svenska (UI och kod-kommentarer)
-**Målgrupp:** Konsulter som hanterar störningsärenden, andrahandsuthyrning etc. för BRF:er
+> CRM för bostadskonsulter. Svenska UI. Se `docs/SPEC.md` för fullständig spec.
 
----
+## Quick Start
 
-## Projektmapp (KRITISKT!)
-
-```
-ABSOLUT SÖKVÄG: /Users/jonashalvarsson/Desktop/alla mina appar
-BYGG HÄR - skapa INTE undermappar!
-
-Kommando: npm create vite@latest . -- --template react-ts
-(notera punkten = nuvarande mapp)
+```bash
+npm run dev        # Starta på port 5173
+npm run build      # Produktionsbygge
+npx tsc --noEmit   # Typkontroll
 ```
 
----
-
-## Viktiga Filer
-
-| Fil | Beskrivning |
-|-----|-------------|
-| `GRANNFRID_FINAL_SPEC_V3.md` | **Huvudspecifikation** - läs denna för all kod |
-| `CLAUDE_CODE_BYGGPLAN_V2.md` | Byggplan med Ralph Wiggum-instruktioner |
-| `src/` | Källkod för appen (byggs i samma mapp) |
-
----
+**Testanvändare:** `test@grannfrid.se` / `Test1234!`
 
 ## Tech Stack
 
-- **Frontend:** React 18 + TypeScript + Vite
-- **Backend:** Supabase (Auth + PostgreSQL + RLS)
-- **State:** TanStack React Query v5 (object signature!)
-- **Forms:** React Hook Form + Zod
-- **Rich Text:** TipTap v2
-- **UI:** Radix UI primitives + Tailwind CSS v4 (CSS-first config)
-- **Icons:** Lucide React
-- **Toasts:** Sonner
-
----
-
-## Kritiska Regler
-
-### Tailwind + Färger
-```css
-/* RÄTT - RGB-format i CSS */
---sage: 135 169 107;
-
-/* RÄTT - i tailwind.config.js */
-sage: 'rgb(var(--sage) / <alpha-value>)'
-
-/* Då fungerar detta: */
-className="bg-sage/10 text-sage"
-```
-
-### React Query v5
-- **ALLTID** använd `queryKeys.ts` för cache-keys
-- **ALLTID** invalidera queries vid mutations
-- **VIKTIGT:** React Query v5 kräver **object signature**:
-```typescript
-// RÄTT (v5)
-useQuery({ queryKey: [...], queryFn: async () => {...} })
-useMutation({ mutationFn: async () => {...}, onSuccess: () => {...} })
-queryClient.invalidateQueries({ queryKey: [...] })
-
-// FEL (v4 syntax)
-useQuery([...], async () => {...})  // FUNGERAR INTE I V5!
-```
-- Se `src/lib/queryKeys.ts` för factory pattern
-
-### Formulär
-- **ALLTID** använd Zod schemas från `src/lib/schemas.ts`
-- **ALLTID** använd `react-hook-form` med `@hookform/resolvers/zod`
-
-### Journal Entries
-- **ALDRIG** delete - använd `is_archived = true`
-- **ALLTID** skapa `time_entry` när `hours > 0`
-- **HANTERA** split när timbank överskrids (två entries)
-
-### Komponenter
-- `Switch.tsx` - använd vår Radix wrapper, inte direkt import
-- `ProfilePage.tsx` - MÅSTE ha useEffect för form-sync
-- `KnowledgeList.tsx` - använd button-filter, INTE Radix Tabs (Radix Tabs är OK i andra komponenter)
-
-### AuthContext (KRITISKT)
-AuthContext MÅSTE implementera dessa tre funktioner korrekt:
-
-```typescript
-// 1. getSession() vid mount - hämta befintlig session
-const { data: { session } } = await supabase.auth.getSession();
-
-// 2. onAuthStateChange() - lyssna på auth-ändringar
-supabase.auth.onAuthStateChange((event, session) => {
-  setSession(session);
-  setUser(session?.user ?? null);
-});
-
-// 3. Hämta profil från profiles-tabellen när user finns
-if (user) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  setProfile(data);
-}
-```
-
-**Vanligt fel:** Glömma `getSession()` → användare loggas ut vid page refresh.
-
-### Felhantering (STANDARD)
-```typescript
-// ALLTID i mutations
-mutationFn: async (data) => {
-  const { data: result, error } = await supabase.from('x').insert(data);
-  if (error) throw error;  // Kasta error, fånga INTE tyst!
-  return result;
-},
-onError: (error) => {
-  toast.error('Något gick fel: ' + error.message);
-},
-onSuccess: () => {
-  toast.success('Sparat!');
-  queryClient.invalidateQueries({ queryKey: [...] });
-}
-```
-
-**Regler:**
-- **ALDRIG** tysta bort errors med tomma catch-block
-- **ALLTID** visa toast.error() vid fel
-- **ALLTID** logga till console.error() i development
-
----
+React 18 · TypeScript · Vite · Supabase · TanStack Query v5 · Tailwind v4 · Radix UI · Zod
 
 ## Projektstruktur
 
 ```
-alla mina appar/           # <- Projektrot
-├── CLAUDE.md              # Denna fil
-├── GRANNFRID_FINAL_SPEC_V3.md
-├── CLAUDE_CODE_BYGGPLAN_V2.md
-├── package.json
-├── vite.config.ts
-├── tailwind.config.js
-├── tsconfig.json
-├── index.html
-├── .env                   # Supabase credentials
-├── src/
-│   ├── lib/
-│   │   ├── supabase.ts      # Supabase client
-│   │   ├── queryKeys.ts     # React Query keys (KRITISKT!)
-│   │   ├── schemas.ts       # Zod validation
-│   │   ├── billing-logic.ts # Timbank-beräkningar
-│   │   └── constants.ts     # Svenska labels
-│   ├── types/database.ts    # TypeScript types
-│   ├── contexts/AuthContext.tsx
-│   ├── hooks/               # React Query hooks
-│   ├── components/
-│   │   ├── ui/              # Primitiva komponenter
-│   │   ├── layout/          # AppShell, Sidebar, Header
-│   │   └── shared/          # LoadingSpinner, EmptyState
-│   ├── features/            # Domän-komponenter
-│   └── pages/               # Route-komponenter
+src/
+├── components/ui/     # Primitiva komponenter
+├── features/          # Domän-komponenter per feature
+├── hooks/             # React Query hooks (useCustomers, etc.)
+├── lib/
+│   ├── queryKeys.ts   # Cache-nycklar (KRITISKT!)
+│   ├── schemas.ts     # Zod validering
+│   ├── supabase.ts    # Client + withTimeout()
+│   └── billing-logic.ts
+├── pages/             # Route-komponenter
+└── contexts/          # AuthContext
 ```
 
----
+## Dokumentation
 
-## Kommandon
+| Fil                    | Syfte                |
+| ---------------------- | -------------------- |
+| `docs/SPEC.md`         | Kanonisk produktspec |
+| `docs/ARCHITECTURE.md` | Teknisk arkitektur   |
+| `docs/CHANGELOG.md`    | Ändringslogg         |
+| `docs/TODO.md`         | Planerade uppgifter  |
 
-```bash
-# Utveckling
-npm run dev              # Starta dev server (port 5173)
-npm run build            # Produktionsbygge
-npx tsc --noEmit         # Typkontroll utan output
+## Kritiska Regler
 
-# Om fel uppstår
-npm install              # Installera om dependencies
-rm -rf node_modules && npm install  # Clean install
+### 1. Supabase Timeout (OBLIGATORISKT)
+
+```typescript
+// RÄTT - alla queries MÅSTE ha timeout
+const { data, error } = await withTimeout(
+  supabase.from("customers").select("*"),
+);
+
+// FEL - kan hänga oändligt
+const { data } = await supabase.from("customers").select("*");
 ```
 
----
+### 2. React Query v5 Syntax
 
-## Supabase
+```typescript
+// RÄTT - object signature
+useQuery({ queryKey: queryKeys.customers.all, queryFn: ... })
+useMutation({ mutationFn: ..., onSuccess: ... })
 
-### Credentials (.env)
+// FEL - v4 syntax fungerar INTE
+useQuery(['customers'], fetchFn)
 ```
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=xxx
+
+### 3. QueryKeys
+
+Använd ALLTID `src/lib/queryKeys.ts` för cache-nycklar:
+
+```typescript
+queryKeys.customers.all;
+queryKeys.customers.detail(id);
+queryKeys.assignments.byCustomer(customerId);
 ```
 
-### RLS
-- Alla tabeller har RLS aktiverat
-- Policies använder `WITH CHECK` för INSERT/UPDATE
-- `auth.uid()` krävs för all access
+### 4. Felhantering
 
-### Auto-genererade nummer
-- Kunder: `K-001`, `K-002` (via sequence)
-- Ärenden: `C-001` (case), `P-001` (project)
+```typescript
+mutationFn: async (data) => {
+  const { error } = await withTimeout(supabase.from('x').insert(data));
+  if (error) throw error; // ALDRIG tysta bort!
+},
+onError: (e) => toast.error('Fel: ' + e.message),
+onSuccess: () => {
+  toast.success('Sparat!');
+  queryClient.invalidateQueries({ queryKey: ... });
+}
+```
 
----
+### 5. Tailwind Färger (RGB-format)
+
+```css
+--sage: 135 169 107; /* RÄTT */
+--sage: #87a96b; /* FEL - alpha fungerar inte */
+```
 
 ## Affärslogik
 
-### Workspace/Multitenancy-modell
-Grannfrid är en **single-tenant applikation** med workspace som organisatorisk indelning:
-- **Två workspaces:** Göteborg och Stockholm (geografiska kontor)
-- **Workspace används för:** Rapportering och filtrering (inte åtkomstkontroll)
-- **RLS filtrerar på:** `auth.uid()` (inloggad användare), INTE workspace_id
-- **Konsultansvarig:** Varje kund har en `responsible_consultant_id` för ägandeskap
-- **I praktiken:** Alla inloggade användare ser all data (litet team, full transparens)
-
 ### Avtalstyper
-1. **Löpande (hourly)** - Alla timmar faktureras direkt
-2. **Timbank (timebank)** - X timmar ingår, sedan övertid
-3. **Fastpris (fixed)** - Fast månadsbelopp, timmar = statistik
+
+- **hourly** - Alla timmar faktureras direkt
+- **timebank** - X timmar ingår, sedan övertid
+- **fixed** - Fast belopp, timmar för statistik
 
 ### Timbank-split
-När en entry spräcker timbanken:
-```typescript
-// Om 3h kvar i timbank och 5h registreras:
-// → Skapa 2 time_entries:
-//   1. 3h med billing_type='timebank'
-//   2. 2h med billing_type='overtime'
-```
 
-### Indexeringsvarning
-- Visa alert på dashboard om `next_indexation < 7 dagar`
+När journalpost överskrider timbanken → skapa 2 time_entries:
 
----
+1. Resterande timbank-timmar (`billing_type='timebank'`)
+2. Övertidstimmar (`billing_type='overtime'`)
 
-## Vid Problem
-
-1. **Typfel:** Kör `npx tsc --noEmit` och fixa ett i taget
-2. **Import-fel (@/):** Kontrollera `vite.config.ts` och `tsconfig.json`
-3. **Tailwind-färger:** Kontrollera RGB-format i `index.css`
-4. **RLS-fel:** Kontrollera att användare är inloggad
-5. **Cache-problem:** Invalidera rätt queryKey
-
----
-
-## Kodmönster (Exempel)
-
-### Skapa ny hook med React Query
-```typescript
-// src/hooks/useExample.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { queryKeys } from '@/lib/queryKeys';
-
-export function useExamples() {
-  return useQuery({
-    queryKey: queryKeys.examples.all,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('examples').select('*');
-      if (error) throw error;
-      return data;
-    }
-  });
-}
-
-export function useCreateExample() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: ExampleInsert) => {
-      const { error } = await supabase.from('examples').insert(data);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.examples.all });
-    }
-  });
-}
-```
-
-### Lägg till ny queryKey
-```typescript
-// I src/lib/queryKeys.ts
-examples: {
-  all: ['examples'] as const,
-  detail: (id: string) => ['examples', id] as const,
-}
-```
-
-### Lägg till ny Zod schema
-```typescript
-// I src/lib/schemas.ts
-export const exampleSchema = z.object({
-  name: z.string().min(1, 'Namn krävs'),
-  // ... fler fält
-});
-```
-
----
+Se `src/lib/billing-logic.ts` för implementation.
 
 ## Known Gotchas
 
-1. **Tailwind v4 CSS-first config** - Ingen tailwind.config.js! Använd `@theme {}` i CSS
-2. **Tailwind alpha MÅSTE ha RGB-format** - `135 169 107` inte `#87a96b`
-3. **line-clamp ingår i core** - `@tailwindcss/line-clamp` behövs INTE (sedan v3.3)
-4. **postcss.config.js för Tailwind v4** - Använd `{'@tailwindcss/postcss': {}}`
-5. **Switch wrapper** - Radix Switch har dålig UX, använd vår wrapper
-6. **ProfilePage useEffect** - Form måste synkas med server-data via useEffect
-7. **KnowledgeList** - Implementera INTE med Radix Tabs (bug), använd buttons
-8. **RLS WITH CHECK** - INSERT/UPDATE policies MÅSTE ha WITH CHECK-klausul
-9. **Sequences för nummer** - Använd PostgreSQL sequences för K-001, C-001 etc.
-10. **React Query v5 object syntax** - `useQuery({ queryKey, queryFn })` INTE `useQuery(key, fn)`
-11. **AuthContext getSession()** - MÅSTE anropas vid mount för att bevara session
+1. **AuthContext** - `getSession()` MÅSTE anropas vid mount (annars loggas ut vid refresh)
+2. **Supabase singleton** - Använd `globalThis.__supabase` för att undvika "Multiple GoTrueClient"
+3. **withTimeout()** - Obligatorisk på ALLA Supabase-anrop
+4. **React Query v5** - Object signature, INTE array syntax
+5. **Tailwind v4** - CSS-first config via `@theme {}` i CSS
+6. **Switch.tsx** - Använd vår wrapper, inte Radix direkt
+7. **KnowledgeList** - Använd buttons, INTE Radix Tabs
 
----
+## Sessionsrutin
 
-## Ralph Wiggum
+### Efter kodändring
 
-För automatiserad build, använd:
-```bash
-/ralph-loop "..." --completion-promise "GRANNFRID_COMPLETE" --max-iterations 150
+1. Uppdatera `docs/CHANGELOG.md`
+2. Uppdatera `docs/TODO.md` vid nya/avklarade tasks
+3. Uppdatera `docs/KNOWN_ISSUES.md` vid buggar
+
+### Innan session avslutas
+
+```
+[ ] CHANGELOG.md uppdaterad
+[ ] TODO.md uppdaterad
+[ ] SESSION_LOG.md uppdaterad
 ```
 
-**Viktigt för Ralph:**
-- Prompten ändras aldrig - Claude förbättrar genom att läsa git history
-- Verifiering efter varje fas är kritisk (`npm run dev` + `npx tsc --noEmit`)
-- Om stuck i 5+ iterationer: dokumentera vad som blockerar
+## Supabase
 
-Se `CLAUDE_CODE_BYGGPLAN_V2.md` för komplett prompt.
+- RLS aktiverat på alla tabeller
+- Policies kräver `auth.uid() IS NOT NULL`
+- Kundnummer: K-001 (sequence)
+- Ärendenummer: C-001 / P-001 (sequences)
+
+## Vid Problem
+
+1. **Typfel** → `npx tsc --noEmit`
+2. **Import @/** → Kolla `vite.config.ts`
+3. **Tailwind-färg** → RGB-format i CSS
+4. **RLS-fel** → Kontrollera inloggning
+5. **Cache-fel** → Invalidera rätt queryKey

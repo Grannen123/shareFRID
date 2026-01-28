@@ -1,39 +1,44 @@
 export type CustomerType =
-  | 'brf'
-  | 'kommunalt_fastighetsbolag'
-  | 'privat_fastighetsbolag'
-  | 'forvaltningsbolag'
-  | 'stiftelse'
-  | 'samfallighet'
-  | 'ovrig';
+  | "brf"
+  | "kommunalt_fastighetsbolag"
+  | "privat_fastighetsbolag"
+  | "forvaltningsbolag"
+  | "stiftelse"
+  | "samfallighet"
+  | "ovrig";
 
-export type CustomerStatus = 'active' | 'prospekt' | 'vilande';
+export type CustomerStatus = "active" | "prospekt" | "vilande";
 
-export type AgreementType = 'hourly' | 'timebank' | 'fixed';
-export type AgreementStatus = 'draft' | 'active' | 'expired' | 'terminated';
-export type AgreementPeriod = 'monthly' | 'yearly';
+export type AgreementType = "hourly" | "timebank" | "fixed";
+export type AgreementStatus = "draft" | "active" | "expired" | "terminated";
+export type AgreementPeriod = "monthly" | "yearly";
 
-export type AssignmentType = 'case' | 'project';
-export type AssignmentStatus = 'active' | 'paused' | 'closed';
+export type AssignmentType = "case" | "project";
+export type AssignmentStatus = "active" | "paused" | "closed";
 export type AssignmentCategory =
-  | 'disturbance'
-  | 'illegal_sublet'
-  | 'screening'
-  | 'renovation_coordination'
-  | 'investigation'
-  | 'other';
+  | "disturbance"
+  | "illegal_sublet"
+  | "screening"
+  | "renovation_coordination"
+  | "investigation"
+  | "other";
 
-export type Priority = 'low' | 'medium' | 'high';
-export type TaskStatus = 'pending' | 'in_progress' | 'done';
+export type Priority = "low" | "medium" | "high";
+export type TaskStatus = "pending" | "in_progress" | "done";
 
-export type BillingType = 'timebank' | 'overtime' | 'hourly' | 'fixed' | 'internal';
-export type BatchStatus = 'draft' | 'review' | 'exported' | 'locked';
+export type BillingType =
+  | "timebank"
+  | "overtime"
+  | "hourly"
+  | "fixed"
+  | "internal";
+export type BatchStatus = "draft" | "review" | "exported" | "locked";
 
-export type EntryType = 'call' | 'email' | 'meeting' | 'site_visit' | 'note';
+export type EntryType = "call" | "email" | "meeting" | "site_visit" | "note";
 
-export type KnowledgeCategory = 'knowledge' | 'policy' | 'routine';
+export type KnowledgeCategory = "knowledge" | "policy" | "routine";
 
-export type UserRole = 'admin' | 'consultant' | 'readonly';
+export type UserRole = "admin" | "consultant" | "readonly";
 
 // ============================================================================
 // DATABASE ROW TYPES
@@ -124,7 +129,7 @@ export interface JournalEntry {
   id: string;
   assignment_id: string;
   content: string;
-  content_type: 'text' | 'tiptap_json';
+  content_type: "text" | "tiptap_json";
   hours: number | null;
   billing_comment: string | null;
   is_extra_billable: boolean;
@@ -182,7 +187,7 @@ export interface Contact {
   phone: string | null;
   address: string | null;
   notes: string | null;
-  contact_type: 'customer' | 'assignment' | 'standalone';
+  contact_type: "customer" | "assignment" | "standalone";
   is_invoice_recipient: boolean;
   created_at: string;
 }
