@@ -4,4 +4,7 @@ export { Cases } from "./Cases";
 export { Workspace } from "./Workspace";
 export { Billing } from "./Billing";
 export { Knowledge } from "./Knowledge";
+export { Intranet } from "./Intranet";
+export { Company } from "./Company";
+export { Settings } from "./Settings";
 export { Login } from "./Login";

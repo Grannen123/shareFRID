@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Plus, Search, Filter, MoreHorizontal } from "lucide-react";
 import {
   Button,
@@ -122,11 +123,26 @@ function CustomerCard({ customer }: { customer: Customer }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Visa detaljer</DropdownMenuItem>
-              <DropdownMenuItem>Redigera</DropdownMenuItem>
-              <DropdownMenuItem>Nytt ärende</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => toast.info("Visa detaljer kommer snart!")}
+              >
+                Visa detaljer
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => toast.info("Redigera kommer snart!")}
+              >
+                Redigera
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => toast.info("Nytt ärende kommer snart!")}
+              >
+                Nytt ärende
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => toast.error("Radera ej tillgängligt i demo")}
+              >
                 Ta bort
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -156,7 +172,7 @@ export function Customers() {
           <h1 className="text-2xl font-semibold text-gray-900">Kunder</h1>
           <p className="text-gray-500">Hantera kunder och avtal</p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info("Skapa kund kommer snart!")}>
           <Plus className="mr-2 h-4 w-4" />
           Ny kund
         </Button>
@@ -188,7 +204,11 @@ export function Customers() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => toast.info("Filter kommer snart!")}
+            >
               <Filter className="h-4 w-4" />
             </Button>
           </div>

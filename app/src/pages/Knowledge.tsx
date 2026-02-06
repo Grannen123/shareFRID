@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Search, Plus, BookOpen, Tag, Clock } from "lucide-react";
 import { Button, Input, Card, CardContent, Badge } from "@/components/ui";
 import { formatRelativeDate, cn } from "@/lib/utils";
@@ -75,7 +76,10 @@ const categories = [
 
 function ArticleCard({ article }: { article: (typeof mockArticles)[0] }) {
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => toast.info("Visa artikel kommer snart!")}
+    >
       <CardContent className="p-4">
         <div className="space-y-2">
           <div className="flex items-start justify-between">
@@ -132,7 +136,7 @@ export function Knowledge() {
             Mallar, processer och juridisk vägledning
           </p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info("Skapa artikel kommer snart!")}>
           <Plus className="mr-2 h-4 w-4" />
           Ny artikel
         </Button>

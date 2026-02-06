@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Plus,
   Check,
@@ -146,9 +147,20 @@ function TaskItem({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>Redigera</DropdownMenuItem>
-          <DropdownMenuItem>Flytta till ärende</DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600">Ta bort</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => toast.info("Redigera kommer snart!")}
+          >
+            Redigera
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => toast.info("Flytta kommer snart!")}>
+            Flytta till ärende
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-red-600"
+            onClick={() => toast.error("Radera ej tillgängligt i demo")}
+          >
+            Ta bort
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -205,7 +217,7 @@ export function Workspace() {
             klara
           </p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info("Skapa uppgift kommer snart!")}>
           <Plus className="mr-2 h-4 w-4" />
           Ny uppgift
         </Button>
@@ -285,6 +297,10 @@ export function Workspace() {
                     size="sm"
                     disabled={!newNote.trim()}
                     className="w-full"
+                    onClick={() => {
+                      toast.success("Anteckning sparad!");
+                      setNewNote("");
+                    }}
                   >
                     Spara anteckning
                   </Button>

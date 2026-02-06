@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   FileText,
   Download,
@@ -309,7 +310,10 @@ export function Billing() {
               <SelectItem value="2025-11">November 2025</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={() => toast.info("Export kommer snart!")}
+          >
             <Download className="mr-2 h-4 w-4" />
             Exportera
           </Button>
@@ -387,7 +391,12 @@ export function Billing() {
               ? "Avmarkera alla"
               : "Markera alla"}
           </Button>
-          <Button disabled={selectedGroups.size === 0}>
+          <Button
+            disabled={selectedGroups.size === 0}
+            onClick={() =>
+              toast.success(`${selectedGroups.size} kunder godkända!`)
+            }
+          >
             <CheckCircle className="mr-2 h-4 w-4" />
             Godkänn valda
           </Button>
