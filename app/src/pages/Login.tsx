@@ -137,42 +137,32 @@ export function Login() {
               <span className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">
-                {isDevMode ? "Demo-läge" : "För demo-ändamål"}
-              </span>
+              <span className="bg-white px-2 text-gray-500">eller</span>
             </div>
           </div>
 
-          {isDevMode && (
-            <Button
-              onClick={handleDemoLogin}
-              disabled={isLoggingIn}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              {isLoggingIn ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loggar in...
-                </>
-              ) : (
-                <>
-                  <Building2 className="mr-2 h-5 w-5" />
-                  Demo-inloggning
-                </>
-              )}
-            </Button>
-          )}
+          <Button
+            onClick={handleDemoLogin}
+            disabled={isLoggingIn}
+            variant="outline"
+            className="w-full"
+            size="lg"
+          >
+            {isLoggingIn ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loggar in...
+              </>
+            ) : (
+              <>
+                <Building2 className="mr-2 h-5 w-5" />
+                Demo-inloggning
+              </>
+            )}
+          </Button>
 
           <p className="text-center text-xs text-gray-500">
             Grannfrid CRM för bostadskonsulter i Sverige.
-            {!isDevMode && (
-              <>
-                <br />
-                Kontakta administratören om du har problem med inloggningen.
-              </>
-            )}
           </p>
         </CardContent>
       </Card>
