@@ -19,6 +19,7 @@ import {
   Save,
   X,
   Loader2,
+  Search,
 } from "lucide-react";
 import {
   Button,
@@ -89,6 +90,17 @@ export function PersonalNotes({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<PersonalNote>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter notes by search query
+  const filteredNotes = notes.filter((note) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      note.title.toLowerCase().includes(query) ||
+      note.content.toLowerCase().includes(query)
+    );
+  });
 
   // Reset form when closing
   const resetForm = () => {
@@ -160,7 +172,7 @@ export function PersonalNotes({
   };
 
   // Sort notes: pinned first, then by date
-  const sortedNotes = [...notes].sort((a, b) => {
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
   });
@@ -203,6 +215,20 @@ export function PersonalNotes({
         </div>
 
         <CollapsibleContent>
+          {/* Search input */}
+          {notes.length > 3 && (
+            <div className="mt-3 relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="search"
+                placeholder="Sök i anteckningar..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-8 text-sm"
+                aria-label="Sök i personliga anteckningar"
+              />
+            </div>
+          )}
           <div
             className="mt-3 space-y-3"
             style={{ maxHeight, overflowY: "auto" }}
@@ -222,15 +248,33 @@ export function PersonalNotes({
             {sortedNotes.length === 0 && !isCreating ? (
               <div className="text-center py-6 text-gray-400">
                 <StickyNote className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm">Inga personliga anteckningar</p>
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={handleStartCreate}
-                  className="mt-1"
-                >
-                  Skapa din första
-                </Button>
+                {searchQuery.trim() ? (
+                  <>
+                    <p className="text-sm">
+                      Inga anteckningar matchar "{searchQuery}"
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setSearchQuery("")}
+                      className="mt-1"
+                    >
+                      Rensa sökning
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm">Inga personliga anteckningar</p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={handleStartCreate}
+                      className="mt-1"
+                    >
+                      Skapa din första
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               sortedNotes.map((note) => (

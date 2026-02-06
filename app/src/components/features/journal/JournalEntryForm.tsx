@@ -9,7 +9,7 @@
  * - Markdown support
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -23,11 +23,17 @@ import {
   Settings,
   HelpCircle,
   Mic,
-  MicOff,
   Loader2,
   Save,
   X,
+  Square,
 } from "lucide-react";
+import { useDictation } from "@/hooks/useDictation";
+import {
+  useKeyboardShortcut,
+  SHORTCUTS,
+  formatShortcut,
+} from "@/hooks/useKeyboardShortcut";
 import {
   Button,
   Input,
@@ -38,6 +44,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui";
 import {
   journalEntrySchema,
@@ -117,8 +127,6 @@ export function JournalEntryForm({
   isEditing = false,
 }: JournalEntryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSupported, setRecordingSupported] = useState(false);
 
   const {
     register,
@@ -146,14 +154,32 @@ export function JournalEntryForm({
   const entryType = watch("entryType");
   const billingType = watch("billingType");
 
-  // Check for recording support
-  useEffect(() => {
-    setRecordingSupported(
-      typeof navigator !== "undefined" &&
-        "mediaDevices" in navigator &&
-        "getUserMedia" in navigator.mediaDevices,
-    );
-  }, []);
+  // Dictation hook - appends transcript to description
+  const handleTranscriptUpdate = useCallback(
+    (transcript: string) => {
+      const currentDesc = description || "";
+      const newDesc = currentDesc
+        ? `${currentDesc}\n\n${transcript}`
+        : transcript;
+      setValue("description", newDesc);
+    },
+    [description, setValue],
+  );
+
+  const {
+    isRecording,
+    isProcessing,
+    audioLevel,
+    error: dictationError,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    isSupported: recordingSupported,
+  } = useDictation({
+    language: "sv",
+    onTranscriptUpdate: handleTranscriptUpdate,
+    maxDuration: 120,
+  });
 
   // Reset form when opened with new data
   useEffect(() => {
@@ -171,6 +197,40 @@ export function JournalEntryForm({
     }
   }, [isOpen, caseId, initialData, reset]);
 
+  // Cancel recording when dialog closes
+  useEffect(() => {
+    if (!isOpen && isRecording) {
+      cancelRecording();
+    }
+  }, [isOpen, isRecording, cancelRecording]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcut(
+    [
+      {
+        combo: SHORTCUTS.submit,
+        handler: () => {
+          if (isOpen && !isSubmitting) {
+            handleSubmit(handleFormSubmit)();
+          }
+        },
+        enabled: isOpen,
+        description: "Spara journalpost",
+      },
+      {
+        combo: SHORTCUTS.cancel,
+        handler: () => {
+          if (isOpen) {
+            onClose();
+          }
+        },
+        enabled: isOpen,
+        description: "Stäng dialogrutan",
+      },
+    ],
+    [isOpen, isSubmitting, handleSubmit, onClose],
+  );
+
   const handleFormSubmit = async (data: JournalEntryFormData) => {
     setIsSubmitting(true);
     try {
@@ -187,15 +247,12 @@ export function JournalEntryForm({
     setValue("minutes", value);
   };
 
-  const handleStartRecording = async () => {
-    // This will be implemented with Whisper integration
-    setIsRecording(true);
-    // Placeholder - actual implementation in useDictation hook
-  };
-
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    // Placeholder - actual implementation in useDictation hook
+  const handleToggleRecording = async () => {
+    if (isRecording) {
+      await stopRecording();
+    } else {
+      await startRecording();
+    }
   };
 
   const generateInvoiceText = () => {
@@ -339,27 +396,48 @@ export function JournalEntryForm({
             <div className="flex items-center justify-between">
               <Label htmlFor="description">Anteckning</Label>
               {recordingSupported && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={
-                    isRecording ? handleStopRecording : handleStartRecording
-                  }
-                  className={cn(isRecording && "text-red-500")}
-                >
-                  {isRecording ? (
-                    <>
-                      <MicOff className="h-4 w-4 mr-1" />
-                      Stoppa
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-4 w-4 mr-1" />
-                      Diktera
-                    </>
+                <div className="flex items-center gap-2">
+                  {isRecording && (
+                    <div className="flex items-center gap-1">
+                      <div
+                        className="h-2 bg-red-500 rounded-full transition-all duration-100"
+                        style={{ width: `${Math.max(8, audioLevel * 0.4)}px` }}
+                        aria-hidden="true"
+                      />
+                      <span className="text-xs text-red-500 animate-pulse">
+                        Spelar in...
+                      </span>
+                    </div>
                   )}
-                </Button>
+                  {isProcessing && (
+                    <span className="text-xs text-gray-500 flex items-center">
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Transkriberar...
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant={isRecording ? "destructive" : "ghost"}
+                    size="sm"
+                    onClick={handleToggleRecording}
+                    disabled={isProcessing}
+                    aria-label={
+                      isRecording ? "Stoppa inspelning" : "Starta diktering"
+                    }
+                  >
+                    {isRecording ? (
+                      <>
+                        <Square className="h-4 w-4 mr-1" />
+                        Stoppa
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-4 w-4 mr-1" />
+                        Diktera
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </div>
             <Textarea
@@ -367,15 +445,23 @@ export function JournalEntryForm({
               {...register("description")}
               placeholder="Beskriv vad som gjordes..."
               rows={5}
-              className={cn(errors.description && "border-red-500")}
+              className={cn(
+                errors.description && "border-red-500",
+                isRecording && "border-red-300 ring-1 ring-red-200",
+              )}
+              aria-describedby="description-help"
             />
+            {dictationError && (
+              <p className="text-xs text-red-500">{dictationError}</p>
+            )}
             {errors.description && (
               <p className="text-xs text-red-500">
                 {errors.description.message}
               </p>
             )}
-            <p className="text-xs text-gray-400">
+            <p id="description-help" className="text-xs text-gray-400">
               {description?.length || 0} / 2000 tecken
+              {recordingSupported && " • Klicka på mikrofonen för att diktera"}
             </p>
           </div>
 
@@ -410,24 +496,43 @@ export function JournalEntryForm({
             </p>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              <X className="h-4 w-4 mr-1" />
-              Avbryt
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  Sparar...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-1" />
-                  {isEditing ? "Spara" : "Skapa"}
-                </>
-              )}
-            </Button>
+          <DialogFooter className="flex items-center justify-between sm:justify-between">
+            <p className="text-xs text-gray-400 hidden sm:block">
+              {formatShortcut(SHORTCUTS.submit)} spara •{" "}
+              {formatShortcut(SHORTCUTS.cancel)} avbryt
+            </p>
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" variant="outline" onClick={onClose}>
+                      <X className="h-4 w-4 mr-1" />
+                      Avbryt
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatShortcut(SHORTCUTS.cancel)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      loading={isSubmitting}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {isEditing ? "Spara" : "Skapa"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatShortcut(SHORTCUTS.submit)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
