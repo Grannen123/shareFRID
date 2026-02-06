@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui";
-import { AppShell } from "@/components/layout";
+import { AppShell, ProtectedRoute } from "@/components/layout";
+import { AuthProvider } from "@/contexts";
 import {
   Dashboard,
   Customers,
@@ -10,6 +11,7 @@ import {
   Workspace,
   Billing,
   Knowledge,
+  Login,
 } from "@/pages";
 
 const queryClient = new QueryClient({
@@ -24,26 +26,38 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/kunder" element={<Customers />} />
-              <Route path="/kunder/:id" element={<Customers />} />
-              <Route path="/arenden" element={<Cases />} />
-              <Route path="/arenden/:id" element={<Cases />} />
-              <Route path="/arbetsyta" element={<Workspace />} />
-              <Route path="/fakturering" element={<Billing />} />
-              <Route path="/kunskapsbank" element={<Knowledge />} />
-              <Route path="/intranat" element={<Dashboard />} />
-              <Route path="/grannfrid-ab" element={<Dashboard />} />
-              <Route path="/installningar" element={<Dashboard />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-        <Toaster position="bottom-right" richColors />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public route */}
+              <Route path="/login" element={<Login />} />
+
+              {/* Protected routes */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/kunder" element={<Customers />} />
+                <Route path="/kunder/:id" element={<Customers />} />
+                <Route path="/arenden" element={<Cases />} />
+                <Route path="/arenden/:id" element={<Cases />} />
+                <Route path="/arbetsyta" element={<Workspace />} />
+                <Route path="/fakturering" element={<Billing />} />
+                <Route path="/kunskapsbank" element={<Knowledge />} />
+                <Route path="/intranat" element={<Dashboard />} />
+                <Route path="/grannfrid-ab" element={<Dashboard />} />
+                <Route path="/installningar" element={<Dashboard />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

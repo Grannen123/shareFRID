@@ -4,64 +4,17 @@
  * This module provides AI capabilities using Claude for complex tasks
  * and Gemini Flash for bulk operations.
  *
- * Note: In production, API calls should go through a backend proxy
- * to protect API keys. This implementation is for development/demo purposes.
+ * All API calls go through Supabase Edge Functions to keep API keys secure.
  */
 
 import type { ChatMessage, Customer, Case, KnowledgeArticle } from "@/types";
+import { supabase } from "./supabase";
 
-// API Configuration
-const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-const GOOGLE_AI_API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY;
-
-// System prompt for Grannfrid assistant
-const SYSTEM_PROMPT = `Du är Grannfrids AI-assistent, en hjälpsam och professionell assistent för bostadskonsulter i Sverige.
-
-Du hjälper användare med:
-- Störningsärenden och hur de ska hanteras
-- Juridiska frågor kring andrahandsuthyrning, störningar, och uppsägning
-- Skriva mallar och brev
-- Sammanfatta ärenden och journalanteckningar
-- Beräkna timbank och fakturering
-- Hitta information i kunskapsbanken
-
-Svara alltid på svenska. Var professionell men vänlig. När du refererar till juridik, hänvisa till relevant lagstiftning (hyreslagen, bostadsrättslagen, etc.).
-
-Om du inte är säker på något, säg det tydligt och föreslå att användaren konsulterar en jurist.`;
-
-// Claude API types
-interface ClaudeMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
-interface ClaudeResponse {
-  content: Array<{
-    type: "text";
-    text: string;
-  }>;
-}
-
-// Gemini API types
-interface GeminiPart {
-  text: string;
-}
-
-interface GeminiContent {
-  role: "user" | "model";
-  parts: GeminiPart[];
-}
-
-interface GeminiResponse {
-  candidates: Array<{
-    content: {
-      parts: GeminiPart[];
-    };
-  }>;
-}
+// Get Supabase URL for Edge Function calls
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 /**
- * Send a message to Claude and get a response
+ * Send a message to Claude via Edge Function proxy
  * Used for complex analysis, writing, and conversation
  */
 export async function sendToClaude(
@@ -72,63 +25,81 @@ export async function sendToClaude(
     knowledgeArticles?: KnowledgeArticle[];
   },
 ): Promise<string> {
-  if (!ANTHROPIC_API_KEY) {
-    return "AI-funktionen är inte konfigurerad. Lägg till VITE_ANTHROPIC_API_KEY i miljövariabler.";
+  // Get current session for auth token
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return "Du måste vara inloggad för att använda AI-funktionen.";
   }
 
-  // Build context string
-  let contextString = "";
-  if (context?.customer) {
-    contextString += `\n\nAktuell kund: ${context.customer.name} (${context.customer.fortnoxNumber})`;
-  }
-  if (context?.caseData) {
-    contextString += `\n\nAktuellt ärende: ${context.caseData.caseNumber} - ${context.caseData.title}`;
-    if (context.caseData.description) {
-      contextString += `\nBeskrivning: ${context.caseData.description}`;
-    }
-  }
-  if (context?.knowledgeArticles && context.knowledgeArticles.length > 0) {
-    contextString += "\n\nRelevant kunskap från kunskapsbanken:";
-    context.knowledgeArticles.forEach((article) => {
-      contextString += `\n\n### ${article.title}\n${article.content}`;
-    });
-  }
+  // Build context for the API
+  const apiContext = context
+    ? {
+        customer: context.customer
+          ? {
+              name: context.customer.name,
+              fortnoxNumber: context.customer.fortnoxNumber,
+            }
+          : undefined,
+        caseData: context.caseData
+          ? {
+              caseNumber: context.caseData.caseNumber,
+              title: context.caseData.title,
+              description: context.caseData.description,
+            }
+          : undefined,
+        knowledgeArticles: context.knowledgeArticles?.map((a) => ({
+          title: a.title,
+          content: a.content,
+        })),
+      }
+    : undefined;
 
-  const systemPrompt = SYSTEM_PROMPT + contextString;
-
-  // Convert to Claude format
-  const claudeMessages: ClaudeMessage[] = messages
+  // Convert messages to API format
+  const apiMessages = messages
     .filter((m) => m.role !== "system")
     .map((m) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role,
       content: m.content,
     }));
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/ai-proxy?provider=claude`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          messages: apiMessages,
+          context: apiContext,
+        }),
       },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: claudeMessages,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Claude API error:", errorText);
-      throw new Error(`Claude API error: ${response.status}`);
+      if (response.status === 401) {
+        throw new Error("Sessionen har gått ut. Logga in igen.");
+      }
+      if (response.status === 429) {
+        throw new Error(
+          "För många förfrågningar. Vänta en stund och försök igen.",
+        );
+      }
+      if (response.status === 503) {
+        throw new Error(
+          "AI-tjänsten är inte konfigurerad. Kontakta administratören.",
+        );
+      }
+      throw new Error(`AI-fel: ${response.status}`);
     }
 
-    const data: ClaudeResponse = await response.json();
-    return data.content[0].text;
+    const data = await response.json();
+    return data.content;
   } catch (error) {
     console.error("Error calling Claude:", error);
     throw error;
@@ -136,46 +107,57 @@ export async function sendToClaude(
 }
 
 /**
- * Send a message to Gemini Flash for bulk/simple operations
+ * Send a message to Gemini Flash via Edge Function proxy
  * Used for calculations, simple parsing, and high-volume tasks
  */
 export async function sendToGemini(
   prompt: string,
   context?: string,
 ): Promise<string> {
-  if (!GOOGLE_AI_API_KEY) {
-    return "Gemini är inte konfigurerat. Lägg till VITE_GOOGLE_AI_API_KEY i miljövariabler.";
+  // Get current session for auth token
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session?.access_token) {
+    return "Du måste vara inloggad för att använda AI-funktionen.";
   }
-
-  const fullPrompt = context ? `${context}\n\n${prompt}` : prompt;
-
-  const contents: GeminiContent[] = [
-    {
-      role: "user",
-      parts: [{ text: fullPrompt }],
-    },
-  ];
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GOOGLE_AI_API_KEY}`,
+      `${SUPABASE_URL}/functions/v1/ai-proxy?provider=gemini`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ contents }),
+        body: JSON.stringify({
+          prompt,
+          context,
+        }),
       },
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API error:", errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
+      if (response.status === 401) {
+        throw new Error("Sessionen har gått ut. Logga in igen.");
+      }
+      if (response.status === 429) {
+        throw new Error(
+          "För många förfrågningar. Vänta en stund och försök igen.",
+        );
+      }
+      if (response.status === 503) {
+        throw new Error(
+          "Gemini är inte konfigurerad. Kontakta administratören.",
+        );
+      }
+      throw new Error(`AI-fel: ${response.status}`);
     }
 
-    const data: GeminiResponse = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    const data = await response.json();
+    return data.content;
   } catch (error) {
     console.error("Error calling Gemini:", error);
     throw error;
@@ -238,14 +220,23 @@ export function searchKnowledgeBase(
 }
 
 /**
- * Check if AI services are configured
+ * Check if user is authenticated (required for AI features)
  */
-export function isAIConfigured(): {
-  claude: boolean;
-  gemini: boolean;
-} {
+export async function isAIAvailable(): Promise<boolean> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return !!session?.access_token;
+}
+
+/**
+ * Legacy function for compatibility - now returns auth status
+ */
+export function isAIConfigured(): { claude: boolean; gemini: boolean } {
+  // AI is available if Supabase is configured
+  const hasSupabase = !!import.meta.env.VITE_SUPABASE_URL;
   return {
-    claude: !!ANTHROPIC_API_KEY,
-    gemini: !!GOOGLE_AI_API_KEY,
+    claude: hasSupabase,
+    gemini: hasSupabase,
   };
 }
