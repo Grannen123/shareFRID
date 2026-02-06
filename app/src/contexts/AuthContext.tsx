@@ -3,6 +3,9 @@
  *
  * Provides Microsoft SSO authentication with MSAL and
  * Supabase session management.
+ *
+ * DEV MODE: Automatically enabled in development (import.meta.env.DEV)
+ * This allows viewing the app without Microsoft credentials.
  */
 
 import {
@@ -28,15 +31,10 @@ import {
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-// Initialize MSAL instance
-const msalInstance = new PublicClientApplication(msalConfig);
+// Check if dev auth mode is enabled
+const isDevMode = import.meta.env.DEV;
 
-// Initialize MSAL
-msalInstance.initialize().then(() => {
-  // Handle redirect promise
-  msalInstance.handleRedirectPromise().catch(console.error);
-});
-
+// Types
 interface AuthUser {
   id: string;
   email: string;
@@ -59,6 +57,25 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   getAccessToken: (scopes?: string[]) => Promise<string | null>;
   error: string | null;
+  isDevMode: boolean;
+}
+
+// Mock dev user for development
+const DEV_USER: AuthUser = {
+  id: "dev-user-001",
+  email: "dev@grannfrid.se",
+  name: "Dev Användare",
+  role: "admin",
+  workspace: "dev-workspace",
+};
+
+// Initialize MSAL instance (only if not in dev mode)
+let msalInstance: PublicClientApplication | null = null;
+if (!isDevMode) {
+  msalInstance = new PublicClientApplication(msalConfig);
+  msalInstance.initialize().then(() => {
+    msalInstance?.handleRedirectPromise().catch(console.error);
+  });
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -68,9 +85,11 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(
+    isDevMode ? DEV_USER : null,
+  );
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isDevMode);
   const [interactionStatus, setInteractionStatus] = useState<InteractionStatus>(
     InteractionStatus.None,
   );
@@ -78,6 +97,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check if user has Microsoft account connected
   const getMicrosoftAccount = useCallback((): AccountInfo | null => {
+    if (!msalInstance) return null;
     const accounts = msalInstance.getAllAccounts();
     return accounts.length > 0 ? accounts[0] : null;
   }, []);
@@ -109,6 +129,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize authentication state
   useEffect(() => {
+    // Skip initialization in dev mode - we already have DEV_USER
+    if (isDevMode) {
+      console.log("🔧 Dev mode: Auto-logged in as", DEV_USER.name);
+      return;
+    }
+
     const initAuth = async () => {
       try {
         // Check Supabase session
@@ -144,36 +170,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
 
     // Listen for MSAL events
-    const callbackId = msalInstance.addEventCallback((event) => {
-      if (event.eventType === EventType.LOGIN_SUCCESS) {
-        const result = event.payload as AuthenticationResult;
-        const microsoftAccount = result.account;
-        if (supabaseUser) {
-          setUser(buildUser(supabaseUser, microsoftAccount));
+    let callbackId: string | null = null;
+    if (msalInstance) {
+      callbackId = msalInstance.addEventCallback((event) => {
+        if (event.eventType === EventType.LOGIN_SUCCESS) {
+          const result = event.payload as AuthenticationResult;
+          const microsoftAccount = result.account;
+          if (supabaseUser) {
+            setUser(buildUser(supabaseUser, microsoftAccount));
+          }
         }
-      }
-      if (event.eventType === EventType.LOGOUT_SUCCESS) {
-        const microsoftAccount = getMicrosoftAccount();
-        if (supabaseUser) {
-          setUser(buildUser(supabaseUser, microsoftAccount));
+        if (event.eventType === EventType.LOGOUT_SUCCESS) {
+          const microsoftAccount = getMicrosoftAccount();
+          if (supabaseUser) {
+            setUser(buildUser(supabaseUser, microsoftAccount));
+          }
         }
-      }
-    });
+      });
+    }
 
     return () => {
       subscription.unsubscribe();
-      if (callbackId) {
+      if (callbackId && msalInstance) {
         msalInstance.removeEventCallback(callbackId);
       }
     };
   }, [buildUser, getMicrosoftAccount, supabaseUser]);
 
-  // Login with Supabase (email/password or magic link)
+  // Login - in dev mode, just set the dev user
   const login = useCallback(async () => {
+    if (isDevMode) {
+      setUser(DEV_USER);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      // For now, use Microsoft SSO as primary login
       await loginWithMicrosoft();
     } catch (err) {
       console.error("Login error:", err);
@@ -186,7 +219,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Login with Microsoft SSO
   const loginWithMicrosoft = useCallback(async () => {
-    if (!isMicrosoftAuthConfigured()) {
+    if (isDevMode) {
+      console.log("🔧 Dev mode: Microsoft login skipped");
+      setUser(DEV_USER);
+      return;
+    }
+
+    if (!isMicrosoftAuthConfigured() || !msalInstance) {
       setError("Microsoft-inloggning är inte konfigurerad");
       throw new Error("Microsoft auth not configured");
     }
@@ -208,16 +247,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           });
 
         if (supabaseError) {
-          // If Supabase Azure provider is not configured, try creating a user
           console.warn(
             "Supabase Azure auth failed, using email login:",
             supabaseError,
           );
 
-          // Use email from Microsoft account to sign in or create user
           const email = result.account.username;
           if (email) {
-            // For development, auto-sign in with email
             const { error: signInError } = await supabase.auth.signInWithOtp({
               email,
               options: {
@@ -235,7 +271,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
 
-        // Update user state with Microsoft account
         setUser(buildUser(data?.user || supabaseUser, result.account));
       }
     } catch (err) {
@@ -248,17 +283,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [buildUser, supabaseUser]);
 
-  // Logout from both Supabase and Microsoft
+  // Logout
   const logout = useCallback(async () => {
+    if (isDevMode) {
+      setUser(null);
+      console.log("🔧 Dev mode: Logged out");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Logout from Microsoft
       const account = getMicrosoftAccount();
-      if (account) {
+      if (account && msalInstance) {
         await msalInstance.logoutPopup({ account });
       }
 
-      // Logout from Supabase
       await supabase.auth.signOut();
 
       setUser(null);
@@ -274,8 +313,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Get access token for Microsoft Graph API
   const getAccessToken = useCallback(
     async (scopes?: string[]): Promise<string | null> => {
+      if (isDevMode) {
+        // Return a mock token for dev mode
+        return "dev-mock-token";
+      }
+
       const account = getMicrosoftAccount();
-      if (!account) {
+      if (!account || !msalInstance) {
         return null;
       }
 
@@ -314,6 +358,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     getAccessToken,
     error,
+    isDevMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
