@@ -18,7 +18,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isMicrosoftAuthConfigured } from "@/lib/auth-config";
 
 export function Login() {
-  const { isAuthenticated, isLoading, loginWithMicrosoft, error } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    login,
+    loginWithMicrosoft,
+    error,
+    isDevMode,
+  } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const location = useLocation();
@@ -37,6 +44,18 @@ export function Login() {
       await loginWithMicrosoft();
     } catch (err) {
       setLocalError("Inloggning misslyckades. Försök igen.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setIsLoggingIn(true);
+    setLocalError(null);
+    try {
+      await login();
+    } catch (err) {
+      setLocalError("Demo-inloggning misslyckades.");
     } finally {
       setIsLoggingIn(false);
     }
@@ -119,15 +138,41 @@ export function Login() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-white px-2 text-gray-500">
-                För demo-ändamål
+                {isDevMode ? "Demo-läge" : "För demo-ändamål"}
               </span>
             </div>
           </div>
 
+          {isDevMode && (
+            <Button
+              onClick={handleDemoLogin}
+              disabled={isLoggingIn}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              {isLoggingIn ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loggar in...
+                </>
+              ) : (
+                <>
+                  <Building2 className="mr-2 h-5 w-5" />
+                  Demo-inloggning
+                </>
+              )}
+            </Button>
+          )}
+
           <p className="text-center text-xs text-gray-500">
             Grannfrid CRM för bostadskonsulter i Sverige.
-            <br />
-            Kontakta administratören om du har problem med inloggningen.
+            {!isDevMode && (
+              <>
+                <br />
+                Kontakta administratören om du har problem med inloggningen.
+              </>
+            )}
           </p>
         </CardContent>
       </Card>
