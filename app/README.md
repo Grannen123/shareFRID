@@ -82,28 +82,33 @@ app/
 ## Kärnfunktioner
 
 ### Kunder (Customers)
+
 - Hantera BRF:er och fastighetsbolag
 - Kontaktpersoner och fakturamottagare
 - Uppdelat på arbetsyta (Göteborg/Stockholm)
 
 ### Avtal (Agreements)
+
 - **Löpande:** Alla timmar faktureras
 - **Timbank:** X timmar ingår, övertid faktureras separat
 - **Fastpris:** Fast belopp per period
 - **Engångsbelopp:** Engångsuppdrag
 
 ### Ärenden (Cases)
+
 - Störningsärenden (C-26-xxx)
 - Projekt (P-26-xxx)
 - Journalanteckningar med tidrapportering
 - Automatisk timbank-split
 
 ### Fakturering (Billing)
+
 - Automatisk beräkning av timbank-split
 - Granska och godkänn faktureringsrader
 - Export till Fortnox (planerat)
 
 ### Kunskapsbank
+
 - Mallar och processbeskrivningar
 - Juridisk vägledning
 - Sökbar dokumentation

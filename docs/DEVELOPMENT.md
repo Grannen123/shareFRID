@@ -69,6 +69,7 @@ const result = calculateTimbankSplit(480, 300);
 ```
 
 Två `BillingLine` skapas:
+
 1. `type: 'timebank'` - 300 min, 0 kr
 2. `type: 'overtime'` - 180 min, rate × 3h
 
@@ -106,12 +107,12 @@ interface Customer {
 const customerSchema = z.object({
   fortnoxNumber: z.string().min(1),
   name: z.string().min(1),
-  status: z.enum(['active', 'prospekt', 'vilande']),
+  status: z.enum(["active", "prospekt", "vilande"]),
 });
 
 // React Query för data
 const { data, isLoading } = useQuery({
-  queryKey: ['customers', workspace],
+  queryKey: ["customers", workspace],
   queryFn: () => fetchCustomers(workspace),
 });
 ```
@@ -159,6 +160,7 @@ npm run test
 ```
 
 Prioritera tester för:
+
 1. Billing-logik (kritiskt)
 2. Timbank-split beräkningar
 3. Zod-schemas
@@ -175,6 +177,7 @@ npm run test:e2e
 ### Row Level Security (RLS)
 
 Alla tabeller har RLS aktiverat. Policies:
+
 - Läsbehörighet för autentiserade användare
 - Skrivbehörighet baserat på roll/arbetsyta
 - Personliga anteckningar endast synliga för ägaren
@@ -189,11 +192,11 @@ Alla tabeller har RLS aktiverat. Policies:
 
 ### Miljöer
 
-| Miljö | URL | Branch |
-|-------|-----|--------|
-| Development | localhost:5173 | feature/* |
-| Staging | staging.grannfrid.se | develop |
-| Production | app.grannfrid.se | main |
+| Miljö       | URL                  | Branch     |
+| ----------- | -------------------- | ---------- |
+| Development | localhost:5173       | feature/\* |
+| Staging     | staging.grannfrid.se | develop    |
+| Production  | app.grannfrid.se     | main       |
 
 ### Deployment Process
 
@@ -207,14 +210,17 @@ Alla tabeller har RLS aktiverat. Policies:
 ### Vanliga problem
 
 **"Supabase connection failed"**
+
 - Kontrollera `.env.local`
 - Verifiera att projektet är aktivt i Supabase
 
 **"RLS policy denied"**
+
 - Kontrollera att användaren är autentiserad
 - Verifiera policy i Supabase Dashboard
 
 **"Type error in query"**
+
 - Regenerera typer: `npm run supabase:types`
 
 ## Resurser

@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Mic, MicOff, Paperclip, Sparkles } from "lucide-react";
+import {
+  X,
+  Send,
+  Mic,
+  MicOff,
+  Paperclip,
+  Sparkles,
+  AlertCircle,
+} from "lucide-react";
 import {
   Button,
   ScrollArea,
@@ -8,7 +16,7 @@ import {
   AvatarFallback,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/types";
+import { useAIChat } from "@/hooks";
 
 interface AIChatProps {
   isOpen: boolean;
@@ -16,18 +24,9 @@ interface AIChatProps {
 }
 
 export function AIChat({ isOpen, onClose }: AIChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Hej! Jag är Grannfrids AI-assistent. Hur kan jag hjälpa dig idag? Du kan fråga mig om kunder, ärenden, avtal eller be mig hjälpa till med att skriva dokument.",
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const { messages, isLoading, error, sendMessage, isConfigured } = useAIChat();
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -40,30 +39,9 @@ export function AIChat({ isOpen, onClose }: AIChatProps) {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const message = input.trim();
     setInput("");
-    setIsLoading(true);
-
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
-      const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "Jag förstår. Låt mig hjälpa dig med det. (Detta är en simulerad respons - AI-integrationen kommer att implementeras med Claude och Gemini API:er.)",
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1000);
+    await sendMessage(message);
   };
 
   const toggleRecording = () => {
@@ -92,13 +70,25 @@ export function AIChat({ isOpen, onClose }: AIChatProps) {
             <h2 className="text-sm font-semibold text-gray-900">
               AI-assistent
             </h2>
-            <p className="text-xs text-gray-500">Alltid redo att hjälpa</p>
+            <p className="text-xs text-gray-500">
+              {isConfigured ? "Claude API" : "Ej konfigurerad"}
+            </p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* API Warning */}
+      {!isConfigured && (
+        <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            API-nyckel saknas. Lägg till VITE_ANTHROPIC_API_KEY i .env.local
+          </span>
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
@@ -124,13 +114,15 @@ export function AIChat({ isOpen, onClose }: AIChatProps) {
               </Avatar>
               <div
                 className={cn(
-                  "rounded-lg px-4 py-2 text-sm",
+                  "rounded-lg px-4 py-2 text-sm max-w-[280px]",
                   message.role === "user"
                     ? "bg-primary-600 text-white"
                     : "bg-gray-100 text-gray-900",
                 )}
               >
-                {message.content}
+                <div className="whitespace-pre-wrap break-words">
+                  {message.content}
+                </div>
               </div>
             </div>
           ))}
@@ -154,6 +146,12 @@ export function AIChat({ isOpen, onClose }: AIChatProps) {
                   />
                 </div>
               </div>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
           <div ref={messagesEndRef} />
