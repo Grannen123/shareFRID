@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, Search, Filter, MoreHorizontal, Clock } from "lucide-react";
 import {
@@ -172,12 +173,21 @@ const priorityColors = {
   high: "error" as const,
 };
 
-function CaseCard({ caseItem }: { caseItem: Case }) {
+function CaseCard({
+  caseItem,
+  onClick,
+}: {
+  caseItem: Case;
+  onClick: () => void;
+}) {
   const statusColor = STATUS_COLORS.caseStatus[caseItem.status];
   const timeSpent = mockTimeTracking[caseItem.id] || 0;
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
@@ -246,6 +256,7 @@ function CaseCard({ caseItem }: { caseItem: Case }) {
 }
 
 export function Cases() {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<CaseStatus | "all">(
     "active",
   );
@@ -329,7 +340,11 @@ export function Cases() {
       {/* Cases Grid */}
       <div className="grid gap-4 md:grid-cols-2">
         {filteredCases.map((caseItem) => (
-          <CaseCard key={caseItem.id} caseItem={caseItem} />
+          <CaseCard
+            key={caseItem.id}
+            caseItem={caseItem}
+            onClick={() => navigate(`/arenden/${caseItem.id}`)}
+          />
         ))}
       </div>
 

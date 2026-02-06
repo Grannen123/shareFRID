@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, Search, Filter, MoreHorizontal } from "lucide-react";
 import {
@@ -94,11 +95,20 @@ const mockCustomers: Customer[] = [
   },
 ];
 
-function CustomerCard({ customer }: { customer: Customer }) {
+function CustomerCard({
+  customer,
+  onClick,
+}: {
+  customer: Customer;
+  onClick: () => void;
+}) {
   const statusColor = STATUS_COLORS.customerStatus[customer.status];
 
   return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <Card
+      className="hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -154,6 +164,7 @@ function CustomerCard({ customer }: { customer: Customer }) {
 }
 
 export function Customers() {
+  const navigate = useNavigate();
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace>("goteborg");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -217,7 +228,11 @@ export function Customers() {
         <TabsContent value="goteborg" className="mt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredCustomers.map((customer) => (
-              <CustomerCard key={customer.id} customer={customer} />
+              <CustomerCard
+                key={customer.id}
+                customer={customer}
+                onClick={() => navigate(`/kunder/${customer.id}`)}
+              />
             ))}
           </div>
           {filteredCustomers.length === 0 && (
@@ -230,7 +245,11 @@ export function Customers() {
         <TabsContent value="stockholm" className="mt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredCustomers.map((customer) => (
-              <CustomerCard key={customer.id} customer={customer} />
+              <CustomerCard
+                key={customer.id}
+                customer={customer}
+                onClick={() => navigate(`/kunder/${customer.id}`)}
+              />
             ))}
           </div>
           {filteredCustomers.length === 0 && (

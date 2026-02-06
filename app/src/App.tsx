@@ -8,7 +8,9 @@ import { AuthProvider } from "@/contexts";
 import {
   Dashboard,
   Customers,
+  CustomerDetail,
   Cases,
+  CaseDetail,
   Workspace,
   Billing,
   Knowledge,
@@ -48,9 +50,9 @@ function App() {
                 >
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/kunder" element={<Customers />} />
-                  <Route path="/kunder/:id" element={<Customers />} />
+                  <Route path="/kunder/:id" element={<CustomerDetail />} />
                   <Route path="/arenden" element={<Cases />} />
-                  <Route path="/arenden/:id" element={<Cases />} />
+                  <Route path="/arenden/:id" element={<CaseDetail />} />
                   <Route path="/arbetsyta" element={<Workspace />} />
                   <Route path="/fakturering" element={<Billing />} />
                   <Route path="/kunskapsbank" element={<Knowledge />} />

@@ -1,6 +1,8 @@
 export { Dashboard } from "./Dashboard";
 export { Customers } from "./Customers";
+export { CustomerDetail } from "./CustomerDetail";
 export { Cases } from "./Cases";
+export { CaseDetail } from "./CaseDetail";
 export { Workspace } from "./Workspace";
 export { Billing } from "./Billing";
 export { Knowledge } from "./Knowledge";
