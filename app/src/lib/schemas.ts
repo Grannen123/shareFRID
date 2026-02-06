@@ -274,6 +274,7 @@ export const journalEntrySchema = z.object({
 });
 
 export type JournalEntryFormData = z.infer<typeof journalEntrySchema>;
+export type JournalEntryFormInput = z.input<typeof journalEntrySchema>;
 
 // ============================================
 // Task Schemas
