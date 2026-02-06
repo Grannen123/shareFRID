@@ -4,7 +4,6 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LoadingPage } from "@/components/shared/LoadingSpinner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
-import { CommandCenter } from "@/components/command/CommandCenter";
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() =>
@@ -176,7 +175,6 @@ function App() {
       >
         <AuthProvider>
           <AppRoutes />
-          <CommandCenter />
           <Toaster
             position="top-right"
             richColors

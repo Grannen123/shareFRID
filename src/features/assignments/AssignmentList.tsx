@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Briefcase,
@@ -63,6 +63,7 @@ const priorityVariants: Record<string, "sage" | "terracotta" | "outline"> = {
 
 export function AssignmentList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     data: assignments,
     isLoading,
@@ -77,6 +78,15 @@ export function AssignmentList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Auto-open create form when navigated with ?action=create
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      setShowCreateForm(true);
+      searchParams.delete("action");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [deleteConfirm, setDeleteConfirm] =
     useState<AssignmentWithCustomer | null>(null);
   const [closeConfirm, setCloseConfirm] =

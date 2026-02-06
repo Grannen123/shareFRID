@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/customers", label: "Kunder", icon: Users },
   { to: "/assignments", label: "Uppdrag", icon: FolderKanban },
   { to: "/tasks", label: "Uppgifter", icon: CheckSquare },
@@ -44,6 +44,7 @@ export function Sidebar() {
               <li key={item.to}>
                 <NavLink
                   to={item.to}
+                  end={"end" in item ? item.end : undefined}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-all duration-200",

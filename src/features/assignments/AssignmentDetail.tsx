@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -65,7 +65,10 @@ const priorityVariants: Record<string, "sage" | "terracotta" | "outline"> = {
 };
 
 export function AssignmentDetail() {
-  const { assignmentId } = useParams<{ assignmentId: string }>();
+  const { assignmentId, "*": splat } = useParams<{
+    assignmentId: string;
+    "*": string;
+  }>();
   const navigate = useNavigate();
   const {
     data: assignment,
@@ -92,6 +95,14 @@ export function AssignmentDetail() {
   const [activeTab, setActiveTab] = useState<
     "journal" | "tasks" | "contacts" | "files"
   >("journal");
+
+  // Auto-open edit form when navigated to /assignments/:id/edit
+  useEffect(() => {
+    if (splat === "edit" && assignment) {
+      setShowEditForm(true);
+      navigate(`/assignments/${assignmentId}`, { replace: true });
+    }
+  }, [splat, assignment, assignmentId, navigate]);
 
   if (isLoading) {
     return (

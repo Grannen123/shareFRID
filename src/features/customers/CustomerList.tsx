@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Building2,
@@ -58,6 +58,7 @@ const statusVariants: Record<string, "sage" | "terracotta" | "outline"> = {
 
 export function CustomerList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const createCustomer = useCreateCustomer();
   const deleteCustomer = useDeleteCustomer();
 
@@ -76,6 +77,15 @@ export function CustomerList() {
     isRefetching,
   } = useCustomersPaged(page, pageSize, debouncedSearch);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Auto-open create form when navigated with ?action=create
+  useEffect(() => {
+    if (searchParams.get("action") === "create") {
+      setShowCreateForm(true);
+      searchParams.delete("action");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [deleteConfirm, setDeleteConfirm] =
     useState<CustomerWithAgreement | null>(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
