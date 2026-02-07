@@ -120,11 +120,17 @@ const priorityColors = {
   high: "error" as const,
 };
 
-const entryTypeIcons: Record<string, typeof MessageSquare> = {
+const entryTypeIcons: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   call: MessageSquare,
   email: FileText,
   meeting: User,
   admin: Clock,
+  visit: User,
+  letter: FileText,
+  other: MessageSquare,
 };
 
 export function CaseDetail() {
